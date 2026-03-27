@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 USER = "sindri"
 PASSWORD = "Ebba1505"
 PORT = "5432"
-DATABASE_NAME = "final_project"
+DATABASE_NAME = "ru_db"
 
 # Database connection string
 DATABASE_URL = f"postgresql://{USER}:{PASSWORD}@localhost:{PORT}/{DATABASE_NAME}"

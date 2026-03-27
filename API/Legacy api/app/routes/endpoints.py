@@ -117,13 +117,13 @@ def get_monthly_energy_flow(
 Endpoint 2: get_monthly_company_usage()
 '''
 
-@router.get("/monthly-energy-flow")
+@router.get("/monthly-company-usage")
 def get_monthly_energy_flow(
     from_date: datetime | None = None,
     to_date: datetime | None = None,
     db: Session = Depends(get_orkuflaedi_session)
 ):
-    print(f"Calling [GET] /{db_name}/monthly-energy-flow")
+    print(f"Calling [GET] /{db_name}/monthly-company-usage")
 
     from_date, to_date = validate_date_range_helper(
         from_date,
