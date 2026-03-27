@@ -11,6 +11,7 @@ from app.models.parsed_data.test_measurement_data import TestMeasurementData
 from app.parsers.parse_test_measurment_csv import parse_test_measurement_csv
 from app.utils.validate_file_type import validate_file_type
 from datetime import datetime
+from sqlalchemy import text # import text for queries
 
 '''
 Services already in place
@@ -165,14 +166,127 @@ async def insert_test_measurement_data(
     
 # Task B2
 
-'''
-Service 1: get_monthly_energy_flow_data()
-'''
+# Query A1
+def get_monthly_energy_flow_data(from_date, to_date, db):
+    query = text("""
+        SELECT
+            om.eining_heiti AS power_plant_source,
+            EXTRACT(YEAR FROM om.timi)::int AS year,
+            EXTRACT(MONTH FROM om.timi)::int AS month,
+            om.tegund_maelingar AS measurement_type,
+            SUM(om.gildi_kwh) AS total_kwh
+        FROM raforka_legacy.orku_maelingar om
+        JOIN raforka_legacy.orku_einingar oe
+            ON om.eining_heiti = oe.heiti
+        WHERE oe.tegund = 'virkjun'
+          AND om.timi >= :from_date
+          AND om.timi < :to_date
+        GROUP BY
+            om.eining_heiti,
+            EXTRACT(YEAR FROM om.timi),
+            EXTRACT(MONTH FROM om.timi),
+            om.tegund_maelingar
+        ORDER BY
+            om.eining_heiti,
+            year ASC,
+            month ASC,
+            total_kwh DESC
+    """)
 
-'''
-Service 2: get_monthly_company_usage_data()
-'''
+    result = db.execute(query, {
+        "from_date": from_date,
+        "to_date": to_date
+    })
 
-'''
-Service 3: get_monthly_plant_loss_ratios_data()
-'''
+    return [dict(row._mapping) for row in result]
+
+# Query A2
+def get_monthly_company_usage_data(from_date, to_date, db):
+    query = text("""
+        SELECT
+            eining_heiti AS power_plant_source,
+            EXTRACT(YEAR FROM timi)::int AS year,
+            EXTRACT(MONTH FROM timi)::int AS month,
+            notandi_heiti AS customer_name,
+            SUM(gildi_kwh) AS total_kwh
+        FROM raforka_legacy.orku_maelingar
+        WHERE timi >= :from_date
+          AND timi < :to_date
+          AND tegund_maelingar = 'Úttekt'
+        GROUP BY
+            eining_heiti,
+            EXTRACT(YEAR FROM timi),
+            EXTRACT(MONTH FROM timi),
+            notandi_heiti
+        ORDER BY
+            power_plant_source,
+            year ASC,
+            month ASC,
+            customer_name ASC
+    """)
+
+    result = db.execute(query, {
+        "from_date": from_date,
+        "to_date": to_date
+    })
+
+    return [dict(row._mapping) for row in result]
+
+# Query A3
+def get_monthly_plant_loss_ratios_data(from_date, to_date, db):
+    query = text("""
+        WITH monthly_plant_data AS (
+            SELECT
+                om.eining_heiti AS power_plant_source,
+                EXTRACT(YEAR FROM om.timi)::int AS year,
+                EXTRACT(MONTH FROM om.timi)::int AS month,
+                SUM(CASE
+                    WHEN om.tegund_maelingar ILIKE 'Framleiðsla' THEN om.gildi_kwh
+                    ELSE 0
+                END) AS framleidsla_kwh,
+                SUM(CASE
+                    WHEN om.tegund_maelingar ILIKE 'Innmötun' THEN om.gildi_kwh
+                    ELSE 0
+                END) AS innmotun_kwh,
+                SUM(CASE
+                    WHEN om.tegund_maelingar ILIKE 'Úttekt' THEN om.gildi_kwh
+                    ELSE 0
+                END) AS uttekt_kwh
+            FROM raforka_legacy.orku_maelingar om
+            JOIN raforka_legacy.orku_einingar oe
+                ON om.eining_heiti = oe.heiti
+            WHERE oe.tegund = 'virkjun'
+              AND om.timi >= :from_date
+              AND om.timi < :to_date
+            GROUP BY
+                om.eining_heiti,
+                EXTRACT(YEAR FROM om.timi),
+                EXTRACT(MONTH FROM om.timi)
+        )
+        SELECT
+            power_plant_source,
+            AVG(
+                CASE
+                    WHEN framleidsla_kwh > 0
+                    THEN (framleidsla_kwh - innmotun_kwh) / framleidsla_kwh
+                    ELSE NULL
+                END
+            ) AS plant_to_substation_loss_ratio,
+            AVG(
+                CASE
+                    WHEN framleidsla_kwh > 0
+                    THEN (framleidsla_kwh - uttekt_kwh) / framleidsla_kwh
+                    ELSE NULL
+                END
+            ) AS total_system_loss_ratio
+        FROM monthly_plant_data
+        GROUP BY power_plant_source
+        ORDER BY power_plant_source
+    """)
+
+    result = db.execute(query, {
+        "from_date": from_date,
+        "to_date": to_date
+    })
+
+    return [dict(row._mapping) for row in result]
