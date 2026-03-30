@@ -4,12 +4,12 @@ from sqlalchemy.orm import sessionmaker
 USER = "sindri"
 PASSWORD = "Ebba1505"
 PORT = "5432"
-DATABASE_NAME = "final_project"
+DATABASE_NAME = "ru_db"
 
 # Database connection string
 DATABASE_URL = f"postgresql://{USER}:{PASSWORD}@localhost:{PORT}/{DATABASE_NAME}"
 
-# Create the SQLAlchemy engine (handles the actual DB connection pool)
+# Create the SQLAlchemy engine
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True
@@ -22,7 +22,7 @@ SessionLocal = sessionmaker(
     bind=engine
 )
 
-# Dependency function that provides a DB session
+# Dep function that provides a DB session
 def get_orkuflaedi_session():
     db = SessionLocal()
     try:
