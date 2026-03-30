@@ -54,6 +54,7 @@ CREATE TABLE public.plant_substation_connection(
 CREATE TABLE public.substation_substation_connection(
     sending_station_ID INTEGER,
     receiving_station_ID INTEGER,
+    distance FLOAT NOT NULL,
     FOREIGN KEY (sending_station_ID) REFERENCES public.substation(ID),
     FOREIGN KEY (receiving_station_ID) REFERENCES public.substation(ID),
     PRIMARY KEY (sending_station_ID, receiving_station_ID)
