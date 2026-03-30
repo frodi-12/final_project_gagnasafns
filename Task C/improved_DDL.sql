@@ -1,26 +1,26 @@
 
 
-DROP TABLE IF EXISTS public.user_info
+DROP TABLE IF EXISTS public.user_info;
 
-DROP TABLE IF EXISTS public.sub_user_measurements
+DROP TABLE IF EXISTS public.sub_user_measurements;
 
-DROP TABLE IF EXISTS public.sub_sub_measurements
+DROP TABLE IF EXISTS public.sub_sub_measurements;
 
-DROP TABLE IF EXISTS public.plant_sub_measurements
+DROP TABLE IF EXISTS public.plant_sub_measurements;
 
-DROP TABLE IF EXISTS public.plant_substation_connection
+DROP TABLE IF EXISTS public.plant_substation_connection;
 
-DROP TABLE IF EXISTS public.substation_substation_connection
+DROP TABLE IF EXISTS public.substation_substation_connection;
 
-DROP TABLE IF EXISTS public.substation_user_connection
+DROP TABLE IF EXISTS public.substation_user_connection;
 
-DROP TABLE IF EXISTS public.energy_user
+DROP TABLE IF EXISTS public.energy_user;
 
-DROP TABLE IF EXISTS public.substation
+DROP TABLE IF EXISTS public.substation;
 
-DROP TABLE IF EXISTS public.pwr_plant
+DROP TABLE IF EXISTS public.pwr_plant;
 
-DROP TABLE IF EXISTS public.energy_unit
+DROP TABLE IF EXISTS public.energy_unit;
 
 CREATE TABLE public.energy_unit(
     ID INTEGER PRIMARY KEY,
