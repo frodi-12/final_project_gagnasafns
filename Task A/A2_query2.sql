@@ -6,7 +6,7 @@ SELECT
     EXTRACT(MONTH FROM timi)::int AS month,
     notandi_heiti AS customer_name,
     SUM(gildi_kwh) AS total_kwh
-FROM raforka_legacy.orku_maelingar
+FROM raforka_legacy.orku_maelingar 
 WHERE timi >= '2025-01-01'
   AND timi <  '2026-01-01'
   AND tegund_maelingar = 'Úttekt'

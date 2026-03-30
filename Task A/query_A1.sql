@@ -8,11 +8,8 @@ SELECT
 FROM raforka_legacy.orku_maelingar OM
 JOIN raforka_legacy.orku_einingar OE ON OM.eining_heiti = OE.heiti
 WHERE
-    OE.tegund = 'virkjun'   -- aðeins power plants
+    OE.tegund = 'virkjun'  
     AND OM.timi >= '2025-01-01'
     AND OM.timi < '2026-01-01'
 GROUP BY OM.eining_heiti, year, month, OM.tegund_maelingar
-ORDER BY
-    OM.eining_heiti,
-    month ASC,
-    total_kwh DESC;
+ORDER BY OM.eining_heiti, month ASC, total_kwh DESC;
