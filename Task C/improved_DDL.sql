@@ -1,26 +1,26 @@
 
 
-DROP TABLE IF EXISTS public.user_info;
+DROP TABLE IF EXISTS public.user_info CASCADE;
 
-DROP TABLE IF EXISTS public.sub_user_measurements;
+DROP TABLE IF EXISTS public.sub_user_measurements CASCADE;
 
-DROP TABLE IF EXISTS public.sub_sub_measurements;
+DROP TABLE IF EXISTS public.sub_sub_measurements CASCADE;
 
-DROP TABLE IF EXISTS public.plant_sub_measurements;
+DROP TABLE IF EXISTS public.plant_sub_measurements CASCADE;
 
-DROP TABLE IF EXISTS public.plant_substation_connection;
+DROP TABLE IF EXISTS public.plant_substation_connection CASCADE;
 
-DROP TABLE IF EXISTS public.substation_substation_connection;
+DROP TABLE IF EXISTS public.substation_substation_connection CASCADE;
 
-DROP TABLE IF EXISTS public.substation_user_connection;
+DROP TABLE IF EXISTS public.substation_user_connection CASCADE;
 
-DROP TABLE IF EXISTS public.energy_user;
+DROP TABLE IF EXISTS public.energy_user CASCADE;
 
-DROP TABLE IF EXISTS public.substation;
+DROP TABLE IF EXISTS public.substation CASCADE;
 
-DROP TABLE IF EXISTS public.pwr_plant;
+DROP TABLE IF EXISTS public.pwr_plant CASCADE;
 
-DROP TABLE IF EXISTS public.energy_unit;
+DROP TABLE IF EXISTS public.energy_unit CASCADE;
 
 CREATE TABLE public.energy_unit(
     ID INTEGER PRIMARY KEY,
@@ -111,3 +111,8 @@ CREATE TABLE public.sub_sub_measurements(
     received_pwr FLOAT NOT NULL,
     FOREIGN KEY (sending_station_ID, receiving_station_ID) REFERENCES public.substation_substation_connection(sending_station_ID, receiving_station_ID)
 );
+
+CREATE INDEX idx_psm_time ON plant_sub_measurements(time);
+CREATE INDEX idx_sum_time ON sub_user_measurements(time);
+CREATE INDEX idx_psm_substation ON plant_sub_measurements(substation_ID);
+CREATE INDEX idx_sum_substation ON sub_user_measurements(substation_ID);
