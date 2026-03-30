@@ -1,26 +1,26 @@
 
 
-DROP TABLE IF EXISTS public.user_info;
+DROP TABLE IF EXISTS public.user_info
 
-DROP TABLE IF EXISTS public.sub_user_measurements;
+DROP TABLE IF EXISTS public.sub_user_measurements
 
-DROP TABLE IF EXISTS public.sub_sub_measurements;
+DROP TABLE IF EXISTS public.sub_sub_measurements
 
-DROP TABLE IF EXISTS public.plant_sub_measurements;
+DROP TABLE IF EXISTS public.plant_sub_measurements
 
-DROP TABLE IF EXISTS public.plant_substation_connection;
+DROP TABLE IF EXISTS public.plant_substation_connection
 
-DROP TABLE IF EXISTS public.substation_substation_connection;
+DROP TABLE IF EXISTS public.substation_substation_connection
 
-DROP TABLE IF EXISTS public.substation_user_connection;
+DROP TABLE IF EXISTS public.substation_user_connection
 
-DROP TABLE IF EXISTS public.energy_user;
+DROP TABLE IF EXISTS public.energy_user
 
-DROP TABLE IF EXISTS public.substation;
+DROP TABLE IF EXISTS public.substation
 
-DROP TABLE IF EXISTS public.pwr_plant;
+DROP TABLE IF EXISTS public.pwr_plant
 
-DROP TABLE IF EXISTS public.energy_unit;
+DROP TABLE IF EXISTS public.energy_unit
 
 CREATE TABLE public.energy_unit(
     ID INTEGER PRIMARY KEY,
@@ -85,12 +85,22 @@ CREATE TABLE public.substation_user_connection(
 );
 
 CREATE TABLE public.plant_sub_measurements(
-    substation_ID INTEGER,
+    ID INTEGER PRIMARY KEY,
     plant_ID INTEGER,
+    substation_ID INTEGER,
     time TIMESTAMP NOT NULL,
-    generated_pwr FLOAT NOT NULL,
-    received_pwr FLOAT NOT NULL,
-    FOREIGN KEY (substation_ID, plant_ID) REFERENCES public.plant_substation_connection(plant_ID, substation_ID)
+    pwr_measurement_kwh FLOAT NOT NULL,
+    type VARCHAR NOT NULL,
+    FOREIGN KEY (plant_ID,substation_ID) REFERENCES public.plant_substation_connection(plant_ID, substation_ID)
+);
+
+CREATE TABLE public.sub_user_measurements(
+    ID INTEGER PRIMARY KEY,
+    substation_ID INTEGER,
+    energy_user_ID INTEGER,
+    time TIMESTAMP NOT NULL,
+    pwr_measurement_kwh FLOAT NOT NULL,
+    FOREIGN KEY (substation_ID, energy_user_ID) REFERENCES public.substation_user_connection(substation_ID, energy_user_ID)
 );
 
 CREATE TABLE public.sub_sub_measurements(
@@ -100,13 +110,4 @@ CREATE TABLE public.sub_sub_measurements(
     sent_pwr FLOAT NOT NULL,
     received_pwr FLOAT NOT NULL,
     FOREIGN KEY (sending_station_ID, receiving_station_ID) REFERENCES public.substation_substation_connection(sending_station_ID, receiving_station_ID)
-);
-
-CREATE TABLE public.sub_user_measurements(
-    substation_ID INTEGER,
-    energy_user_ID INTEGER,
-    time TIMESTAMP NOT NULL,
-    sent_pwr FLOAT NOT NULL,
-    received_pwr FLOAT NOT NULL,
-    FOREIGN KEY (substation_ID, energy_user_ID) REFERENCES public.substation_user_connection(substation_ID, energy_user_ID)
 );
