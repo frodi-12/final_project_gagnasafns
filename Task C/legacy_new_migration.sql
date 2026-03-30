@@ -1,4 +1,24 @@
 
+CREATE OR REPLACE FUNCTION public.cords_to_km(
+    lat1 DOUBLE PRECISION,
+    lon1 DOUBLE PRECISION,
+    lat2 DOUBLE PRECISION,
+    lon2 DOUBLE PRECISION
+)
+RETURNS DOUBLE PRECISION AS
+$$
+DECLARE
+    earth_radius CONSTANT DOUBLE PRECISION := 6371; -- km
+BEGIN
+    RETURN earth_radius * acos(
+        cos(radians(lat1)) * cos(radians(lat2)) *
+        cos(radians(lon2) - radians(lon1)) +
+        sin(radians(lat1)) * sin(radians(lat2))
+    );
+END;
+$$
+LANGUAGE plpgsql IMMUTABLE;
+
 INSERT INTO public.energy_unit (id, name, owner, construction_date, x_cords, y_cords)
 SELECT id, heiti, eigandi, MAKE_DATE(ar_uppsett, manudir_uppsett, dagur_uppsett), "X_HNIT", "Y_HNIT"
 FROM raforka_legacy.orku_einingar;
@@ -21,10 +41,32 @@ INSERT INTO public.user_info (kennitala, founding_year, name, owner)
 SELECT kennitala, ar_stofnad, heiti, eigandi
 FROM raforka_legacy.notendur_skraning
 
-INSERT INTO public.plant_substation_connection (plant_id, substation_id)
-SELECT plant.id, sub.id 
+INSERT INTO public.plant_substation_connection (plant_id, substation_id, distance)
+SELECT plant.id, sub.id, public.cords_to_km(plant."X_HNIT", plant."Y_HNIT", sub."X_HNIT", sub."Y_HNIT")
 FROM raforka_legacy.orku_einingar plant
 JOIN raforka_legacy.orku_einingar sub ON sub.heiti = plant.tengd_stod
 WHERE plant.tegund ILIKE 'virkjun'
 
+INSERT INTO public.substation_user_connection (substation_id, energy_user_id, distance)
+SELECT DISTINCT o.id, n.id, public.cords_to_km(o."X_HNIT", o."Y_HNIT", n."X_HNIT", n."Y_HNIT")
+FROM raforka_legacy.orku_maelingar m
+JOIN raforka_legacy.notendur_skraning n ON n.eigandi = m.notandi_heiti
+JOIN raforka_legacy.orku_einingar o ON o.heiti = m.sendandi_maelingar
+WHERE m.notandi_heiti IS NOT NULL
+
+INSERT INTO public.substation_substation_connection (sending_station_id, receiving_station_id)
+SELECT ()
+FROM raforka_legacy.orku_einingar
+
+--INSERT INTO public.plant_sub_measurements (substation_id, plant_id, time, generated_pwr, received_pwr)
+--SELECT 
+--FROM raforka_legacy.orku_maelingar
+
+SELECT * FROM raforka_legacy.orku_maelingar
+limit 50
+
 SELECT * FROM raforka_legacy.orku_einingar
+
+SELECT * FROM raforka_legacy.notendur_skraning
+
+

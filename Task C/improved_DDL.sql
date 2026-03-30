@@ -77,6 +77,7 @@ CREATE TABLE public.user_info(
 CREATE TABLE public.substation_user_connection(
     substation_ID INTEGER,
     energy_user_ID INTEGER,
+    distance FLOAT NOT NULL,
     FOREIGN KEY (substation_ID) REFERENCES public.substation(ID),
     FOREIGN KEY (energy_user_ID) REFERENCES public.energy_user(ID),
     PRIMARY KEY (substation_ID, energy_user_ID)
