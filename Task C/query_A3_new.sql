@@ -10,8 +10,7 @@ FROM plant_sub_measurements psm
 JOIN pwr_plant pp ON psm.plant_ID = pp.ID
 JOIN energy_unit eu ON pp.ID = eu.ID
 LEFT JOIN substation_substation_connection ssc ON ssc.sending_station_ID = psm.substation_ID
-LEFT JOIN sub_user_measurements sum2 
-    ON sum2.substation_ID = ssc.receiving_station_ID
+LEFT JOIN sub_user_measurements sum2 ON sum2.substation_ID = ssc.receiving_station_ID
     AND EXTRACT(MONTH FROM psm.time) = EXTRACT(MONTH FROM sum2.time)
     AND EXTRACT(YEAR FROM psm.time) = EXTRACT(YEAR FROM sum2.time)
 GROUP BY eu.name, EXTRACT(YEAR FROM psm.time), EXTRACT(MONTH FROM psm.time);
@@ -25,7 +24,3 @@ GROUP BY power_plant_source;
 
 
 
-SELECT current_schema();
-SELECT table_schema, table_name 
-FROM information_schema.tables 
-WHERE table_schema NOT IN ('pg_catalog', 'information_schema');
