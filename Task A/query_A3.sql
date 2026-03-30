@@ -1,5 +1,5 @@
 
-SELECT x.eining_heiti, (x.framleit_pwr-x.innmotun_pwr)/x.framleit_pwr AS Plant_to_sbu_loss_ratio, (x.framleit_pwr-x.uttekt_pwr)/x.framleit_pwr AS total_system_loss_ratio
+SELECT x.eining_heiti AS power_plant_source, (x.framleit_pwr-x.innmotun_pwr)/x.framleit_pwr AS Plant_to_sub_loss_ratio, (x.framleit_pwr-x.uttekt_pwr)/x.framleit_pwr AS total_system_loss_ratio
 FROM (
 SELECT 
         om.eining_heiti,
