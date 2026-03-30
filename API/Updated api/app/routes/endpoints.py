@@ -1,24 +1,35 @@
-# Task C5
+from datetime import datetime
+from typing import List
 
-'''
-Endpoint 1: get_monthly_energy_flow()
-'''
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
-'''
-Endpoint 2: get_monthly_company_usage()
-'''
+from app.db.session import get_orkuflaedi_session
+from app.models.monthly_energy_flow_model import MonthlyPlantEnergyFlowModel
+from app.services.service import get_monthly_energy_flow_data
+from app.utils.validate_date_range import validate_date_range_helper
 
-'''
-Endpoint 3: get_monthly_plant_loss_ratios()
-'''
+router = APIRouter()
+db_name = "UpdatedOrkuFlaediIsland"
 
-# Task E1
 
-'''
-Endpoint 4: insert_measurements()
-'''
+@router.get(
+    "/monthly-energy-flow",
+    response_model=List[MonthlyPlantEnergyFlowModel],
+    summary="Query monthly energy flow for each plant and measurement type",
+)
+def get_monthly_energy_flow_endpoint(
+    from_date: datetime | None = None,
+    to_date: datetime | None = None,
+    db: Session = Depends(get_orkuflaedi_session),
+):
+    print(f"Calling [GET] /{db_name}/monthly-energy-flow")
 
-# Task F1
-'''
-Endpoint 5: get_substations_gridflow()
-'''
+    from_date, to_date = validate_date_range_helper(
+        from_date,
+        to_date,
+        datetime(2025, 1, 1, 0, 0),
+        datetime(2026, 1, 1, 0, 0),
+    )
+
+    return get_monthly_energy_flow_data(from_date, to_date, db)
