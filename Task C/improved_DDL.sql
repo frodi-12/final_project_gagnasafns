@@ -54,6 +54,7 @@ CREATE TABLE public.plant_substation_connection(
 CREATE TABLE public.substation_substation_connection(
     sending_station_ID INTEGER,
     receiving_station_ID INTEGER,
+    distance FLOAT NOT NULL,
     FOREIGN KEY (sending_station_ID) REFERENCES public.substation(ID),
     FOREIGN KEY (receiving_station_ID) REFERENCES public.substation(ID),
     PRIMARY KEY (sending_station_ID, receiving_station_ID)
@@ -84,12 +85,22 @@ CREATE TABLE public.substation_user_connection(
 );
 
 CREATE TABLE public.plant_sub_measurements(
-    substation_ID INTEGER,
+    ID INTEGER PRIMARY KEY,
     plant_ID INTEGER,
+    substation_ID INTEGER,
     time TIMESTAMP NOT NULL,
-    generated_pwr FLOAT NOT NULL,
-    received_pwr FLOAT NOT NULL,
-    FOREIGN KEY (substation_ID, plant_ID) REFERENCES public.plant_substation_connection(plant_ID, substation_ID)
+    pwr_measurement_kwh FLOAT NOT NULL,
+    type VARCHAR NOT NULL,
+    FOREIGN KEY (plant_ID,substation_ID) REFERENCES public.plant_substation_connection(plant_ID, substation_ID)
+);
+
+CREATE TABLE public.sub_user_measurements(
+    ID INTEGER PRIMARY KEY,
+    substation_ID INTEGER,
+    energy_user_ID INTEGER,
+    time TIMESTAMP NOT NULL,
+    pwr_measurement_kwh FLOAT NOT NULL,
+    FOREIGN KEY (substation_ID, energy_user_ID) REFERENCES public.substation_user_connection(substation_ID, energy_user_ID)
 );
 
 CREATE TABLE public.sub_sub_measurements(
@@ -99,13 +110,4 @@ CREATE TABLE public.sub_sub_measurements(
     sent_pwr FLOAT NOT NULL,
     received_pwr FLOAT NOT NULL,
     FOREIGN KEY (sending_station_ID, receiving_station_ID) REFERENCES public.substation_substation_connection(sending_station_ID, receiving_station_ID)
-);
-
-CREATE TABLE public.sub_user_measurements(
-    substation_ID INTEGER,
-    energy_user_ID INTEGER,
-    time TIMESTAMP NOT NULL,
-    sent_pwr FLOAT NOT NULL,
-    received_pwr FLOAT NOT NULL,
-    FOREIGN KEY (substation_ID, energy_user_ID) REFERENCES public.substation_user_connection(substation_ID, energy_user_ID)
 );
