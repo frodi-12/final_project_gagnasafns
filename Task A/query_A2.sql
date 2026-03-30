@@ -10,13 +10,5 @@ FROM raforka_legacy.orku_maelingar om
 WHERE om.timi >= '2025-01-01'
   AND om.timi <  '2026-01-01'
   AND om.tegund_maelingar = 'Úttekt'
-GROUP BY
-    om.eining_heiti,
-    EXTRACT(MONTH FROM om.timi),
-    EXTRACT(YEAR FROM om.timi),
-    om.notandi_heiti
-ORDER BY
-    power_plant_source,
-    year,
-    month,
-    customer_name;
+GROUP BY om.eining_heiti, EXTRACT(MONTH FROM om.timi), EXTRACT(YEAR FROM om.timi), om.notandi_heiti
+ORDER BY power_plant_source, year, month, customer_name;
