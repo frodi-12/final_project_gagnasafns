@@ -13,6 +13,8 @@ from app.utils.validate_file_type import validate_file_type
 from datetime import datetime
 from sqlalchemy import text # import text for queries
 
+# run db command: python -m uvicorn app.main:app --reload --port 8000
+
 '''
 Services already in place
 '''

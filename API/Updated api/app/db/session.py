@@ -6,10 +6,13 @@ PASSWORD = "Ebba1505"
 PORT = "5432"
 DATABASE_NAME = "ru_db"
 
+# run db command: python -m uvicorn app.main:app --reload --port 8000
+
+
 # Database connection string
 DATABASE_URL = f"postgresql://{USER}:{PASSWORD}@localhost:{PORT}/{DATABASE_NAME}"
 
-# Create the SQLAlchemy engine (handles the actual DB connection pool)
+# Create the SQLAlchemy engine
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True

@@ -3,8 +3,8 @@ SELECT
     allt.power_plant_source,
     allt.year,
     allt.month,
-    allt.measurement_type,
-    allt.total_kwh
+   t_type,
+    allt.total_kwh allt.measuremen
 FROM (
     -- Framleiðsla, söfnun á generated_pwr
     SELECT
