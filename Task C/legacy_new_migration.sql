@@ -54,9 +54,15 @@ JOIN raforka_legacy.notendur_skraning n ON n.eigandi = m.notandi_heiti
 JOIN raforka_legacy.orku_einingar o ON o.heiti = m.sendandi_maelingar
 WHERE m.notandi_heiti IS NOT NULL
 
-INSERT INTO public.substation_substation_connection (sending_station_id, receiving_station_id)
-SELECT ()
-FROM raforka_legacy.orku_einingar
+INSERT INTO public.substation_substation_connection (sending_station_id, receiving_station_id, distance)
+SELECT x.sub1_id, x.sub2_id, public.cords_to_km(s1."X_HNIT", s1."Y_HNIT", s2."X_HNIT", s2."Y_HNIT")
+FROM (
+    VALUES
+        (1,2),
+        (2,3)
+) AS x(sub1_id,sub2_id)
+JOIN raforka_legacy.orku_einingar s1 ON s1.id = x.sub1_id
+JOIN raforka_legacy.orku_einingar s2 ON s2.id = x.sub2_id
 
 --INSERT INTO public.plant_sub_measurements (substation_id, plant_id, time, generated_pwr, received_pwr)
 --SELECT 
