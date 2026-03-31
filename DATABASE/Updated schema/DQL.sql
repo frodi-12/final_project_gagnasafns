@@ -57,6 +57,10 @@ JOIN public.energy_unit eunit ON eunit.id = sume.pwr_plant_id
 GROUP BY eunit.name, ui.owner, EXTRACT(MONTH FROM sume.time), EXTRACT(year FROM sume.time)
 ORDER BY eunit.name, EXTRACT(MONTH FROM sume.time), ui.owner ASC
 
+-- í gamla query-inu þá vorum við bara að vinna með eina töflu en í þessu query-i þá erum við að vinna með 4 töflur og því þurftum við að gera 3 join til að ná í allar upplýsingar sem við þurfum.
+-- Við byrjum á því að tengja sub_user_measurements við energy_user til að fá upplýsingar um hverjir eru að nota orkuna, síðan tengjum við user_info til að fá nöfnin á þessum notendum og að lokum tengjum við energy_unit til að fá nöfnin á orkuverunum. 
+-- Síðan er þetta allt hópað eftir orkuveri, ári, mánuði og nafni notanda og lögð saman fyrir hverja þessa hópa.
+
 --Query 1
 SELECT 
     eu.name AS power_plant_source, 
@@ -79,6 +83,9 @@ JOIN public.energy_unit eu ON eu.id = sume.pwr_plant_id
 GROUP BY eu.name, EXTRACT(YEAR FROM sume.time), EXTRACT(MONTH FROM sume.time)
 ORDER BY power_plant_source, year, month, total_kwh DESC
 
-
+-- Í gamla query-inu þá vorum við að vinna með eina töflu og því þurftum við ekki að gera nein join, en í þessu query-i þá erum við að vinna með tvær töflur og því þurftum við að gera 2 join til að ná í allar upplýsingar sem við þurfum.
+-- Við byrjum á því að tengja plant_sub_measurements við energy_unit til að fá nöfnin á orkuverunum, síðan tengjum við sub_user_measurements við energy_unit til að fá nöfnin á orkuverunum fyrir úttektina. 
+-- Síðan er þetta allt hópað eftir orkuveri, ári, mánuði og tegund mælingar og lögð saman fyrir hverja þessa hópa. 
+-- Við notum UNION til að sameina niðurstöðurnar úr báðum þessum hópum og síðan er þetta allt raðað eftir orkuveri, ári, mánuði og heildarorku í lækkandi röð.
 
 
