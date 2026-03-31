@@ -52,3 +52,5 @@ GROUP BY eu.name, EXTRACT(YEAR FROM sume.time), EXTRACT(MONTH FROM sume.time)
 ORDER BY name, year, month, total_kwh DESC
 
 
+
+
