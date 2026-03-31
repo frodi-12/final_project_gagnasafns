@@ -53,8 +53,11 @@ JOIN public.energy_unit eu ON eu.name = ppp.name
 JOIN public.energy_delivered ed ON ed.pwr_plant_id = eu.id AND ed.month = ppp.month
 ORDER BY ppp.name, ppp.month
 
-SELECT * 
+SELECT name,
+    (SUM(total_production_kwh)-SUM(total_substation_pwr_kwh))/SUM(total_production_kwh) AS plant_to_sub_loss_ratio,
+    (SUM(total_production_kwh)-SUM(delivered_pwr))/SUM(total_production_kwh) AS total_system_loss_ratio
 FROM public.energy_flow
+GROUP BY name
 
 
 
