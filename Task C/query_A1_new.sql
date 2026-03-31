@@ -1,32 +1,32 @@
--- Nýtum energy_flow view beint til að sýna þrjár tegundir mælinga árið 2025
+-- Task C5 - Query 1: Monthly energy flow per power plant using the reusable energy_flow view.
 SELECT
-    name AS power_plant_source,
+    plant_name AS power_plant_source,
     year,
     month,
     'Framleiðsla' AS measurement_type,
-    CASE WHEN total_production_kwh IS NULL THEN 0 ELSE total_production_kwh END AS total_kwh
+    COALESCE(total_production_kwh, 0) AS total_kwh
 FROM public.energy_flow
 WHERE year = 2025
 
 UNION ALL
 
 SELECT
-    name AS power_plant_source,
+    plant_name AS power_plant_source,
     year,
     month,
     'Innmötun' AS measurement_type,
-    CASE WHEN total_substation_pwr_kwh IS NULL THEN 0 ELSE total_substation_pwr_kwh END AS total_kwh
+    COALESCE(total_substation_pwr_kwh, 0) AS total_kwh
 FROM public.energy_flow
 WHERE year = 2025
 
 UNION ALL
 
 SELECT
-    name AS power_plant_source,
+    plant_name AS power_plant_source,
     year,
     month,
     'Úttekt' AS measurement_type,
-    CASE WHEN delivered_pwr IS NULL THEN 0 ELSE delivered_pwr END AS total_kwh
+    COALESCE(delivered_pwr, 0) AS total_kwh
 FROM public.energy_flow
 WHERE year = 2025
 

@@ -1,4 +1,4 @@
--- Lesum úr monthly_company_usage_view til að fá viðskiptavinaflæði árið 2025
+-- Task C5 - Query 2: Monthly withdrawal per plant and customer using the reusable view.
 SELECT
     power_plant_source,
     customer_name,
