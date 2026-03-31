@@ -2,7 +2,8 @@
 
 CREATE VIEW public.energy_delivered AS
 SELECT 
-    su.pwr_plant_id, EXTRACT(MONTH FROM su.time) AS month, 
+    su.pwr_plant_id, 
+    EXTRACT(MONTH FROM su.time) AS month, 
     SUM(su.pwr_measurement_kwh) AS delivered_pwr
 FROM public.sub_user_measurements su
 GROUP BY su.pwr_plant_id, EXTRACT(MONTH FROM su.time)
@@ -29,6 +30,10 @@ JOIN public.energy_unit eu ON eu.name = ppp.name
 JOIN public.energy_delivered ed ON ed.pwr_plant_id = eu.id AND ed.month = ppp.month
 ORDER BY ppp.name, ppp.month
 
+-- Búum til 3 views til að einfalda fyrirsögn sem við þurfum að keyra í kjölfarið. 
+-- Fyrsta viewið (energy_delivered) reiknar saman heildarorku sem hefur verið afhent frá hverju orkuveri á hverjum mánuði. 
+-- Annað viewið (pwr_plant_production) reiknar saman heildarframleiðslu og innmötun í hverju orkuveri á hverjum mánuði. 
+-- Þriðja viewið (energy_flow) sameinar þessi tvö views til að sýna orkuflæði frá framleiðslu til afhendingar fyrir hvert orkuver og mánuð.
 
 -- Query 3
 SELECT 
