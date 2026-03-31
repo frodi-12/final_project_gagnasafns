@@ -4,7 +4,7 @@ SELECT
     allt.year,
     allt.month,
    t_type,
-    allt.total_kwh allt.measuremen
+    allt.total_kwh, allt.measuremen
 FROM (
     -- Framleiðsla, söfnun á generated_pwr
     SELECT
