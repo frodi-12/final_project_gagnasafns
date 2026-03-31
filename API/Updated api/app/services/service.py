@@ -41,8 +41,8 @@ TASK_C_VIEW_STATEMENTS = [
     """
     CREATE VIEW public.energy_delivered AS
         SELECT su.pwr_plant_id,
-               EXTRACT(YEAR FROM su.time) AS year,
-               EXTRACT(MONTH FROM su.time) AS month,
+               EXTRACT(YEAR FROM su.time)::int AS year,
+               EXTRACT(MONTH FROM su.time)::int AS month,
                SUM(su.pwr_measurement_kwh) AS delivered_pwr
         FROM public.sub_user_measurements su
         GROUP BY su.pwr_plant_id, EXTRACT(YEAR FROM su.time), EXTRACT(MONTH FROM su.time)
@@ -52,8 +52,8 @@ TASK_C_VIEW_STATEMENTS = [
     SELECT
         p.name AS power_plant_source,
         psm.plant_id AS plant_id,
-        EXTRACT(YEAR FROM psm.time) AS year,
-        EXTRACT(MONTH FROM psm.time) AS month,
+        EXTRACT(YEAR FROM psm.time)::int AS year,
+        EXTRACT(MONTH FROM psm.time)::int AS month,
         SUM(psm.pwr_measurement_kwh) FILTER (WHERE psm.type = 'Framleiðsla') AS total_production_kwh,
         SUM(psm.pwr_measurement_kwh) FILTER (WHERE psm.type = 'Innmötun') AS total_substation_pwr_kwh
     FROM public.plant_sub_measurements psm
