@@ -30,6 +30,13 @@ Swagger UI: http://localhost:8000/docs
 """
 
 # Fasti fyrir viewin okkar
+TASK_C_DROP_STATEMENTS = [
+    "DROP VIEW IF EXISTS public.energy_flow CASCADE",
+    "DROP VIEW IF EXISTS public.monthly_company_usage_view CASCADE",
+    "DROP VIEW IF EXISTS public.energy_delivered CASCADE",
+    "DROP VIEW IF EXISTS public.pwr_plant_monthly_totals CASCADE",
+]
+
 TASK_C_VIEW_STATEMENTS = [
     """
     CREATE OR REPLACE VIEW public.pwr_plant_monthly_totals AS
@@ -115,6 +122,9 @@ def ensure_task_c_views(db: Session) -> None:
     global _TASK_C_VIEWS_CREATED
     if _TASK_C_VIEWS_CREATED:
         return
+
+    for statement in TASK_C_DROP_STATEMENTS:
+        db.execute(text(statement))
 
     for statement in TASK_C_VIEW_STATEMENTS:
         db.execute(text(statement))

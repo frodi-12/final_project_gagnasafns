@@ -2,6 +2,11 @@
 
 -- Views
 
+DROP VIEW IF EXISTS energy_flow CASCADE;
+DROP VIEW IF EXISTS public.pwr_plant_production CASCADE;
+DROP VIEW IF EXISTS public.energy_delivered CASCADE;
+DROP VIEW IF EXISTS public.monthly_company_usage_view CASCADE;
+
 CREATE VIEW public.energy_delivered AS
 SELECT
     psc.plant_id AS pwr_plant_id,
