@@ -40,14 +40,16 @@ TASK_C_DROP_STATEMENTS = [
 TASK_C_VIEW_STATEMENTS = [
     """
     CREATE VIEW public.energy_delivered AS
-        SELECT su.pwr_plant_id, EXTRACT(MONTH FROM su.time) AS month, SUM(su.pwr_measurement_kwh) AS delivered_pwr
+        SELECT su.pwr_plant_id,
+               EXTRACT(MONTH FROM su.time) AS month,
+               SUM(su.pwr_measurement_kwh) AS delivered_pwr
         FROM public.sub_user_measurements su
         GROUP BY su.pwr_plant_id, EXTRACT(MONTH FROM su.time)
     ;
 
     CREATE VIEW public.pwr_plant_production AS
     SELECT
-        p.name,
+        p.name AS power_plant_source,
         psm.plant_id AS plant_id,
         EXTRACT(MONTH FROM psm.time) AS month,
         SUM(psm.pwr_measurement_kwh) FILTER (WHERE psm.type = 'Framleiðsla') AS total_production_kwh,
@@ -58,11 +60,15 @@ TASK_C_VIEW_STATEMENTS = [
     ;
 
     CREATE VIEW energy_flow AS
-        SELECT ppp.name, ppp.month, ppp.total_production_kwh, ppp.total_substation_pwr_kwh, ed.delivered_pwr
+        SELECT ppp.power_plant_source,
+               ppp.month,
+               ppp.total_production_kwh,
+               ppp.total_substation_pwr_kwh,
+               ed.delivered_pwr
         FROM public.pwr_plant_production ppp
-        JOIN public.energy_unit eu ON eu.name = ppp.name
+        JOIN public.energy_unit eu ON eu.name = ppp.power_plant_source
         JOIN public.energy_delivered ed ON ed.pwr_plant_id = eu.id AND ed.month = ppp.month
-        ORDER BY ppp.name, ppp.month
+        ORDER BY ppp.power_plant_source, ppp.month
     ;
     """,
 ]
