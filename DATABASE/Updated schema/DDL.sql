@@ -100,6 +100,7 @@ CREATE TABLE public.sub_user_measurements(
     energy_user_ID INTEGER,
     time TIMESTAMP NOT NULL,
     pwr_measurement_kwh FLOAT NOT NULL,
+    pwr_plant_id INTEGER NOT NULL,
     FOREIGN KEY (substation_ID, energy_user_ID) REFERENCES public.substation_user_connection(substation_ID, energy_user_ID)
 );
 
