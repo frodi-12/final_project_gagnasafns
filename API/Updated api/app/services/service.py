@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Dict, List, Tuple
+import unicodedata
 
 from fastapi import HTTPException, UploadFile
 from sqlalchemy import text
@@ -135,6 +136,28 @@ TASK_C_VIEW_STATEMENTS = [
 _TASK_C_VIEWS_CREATED = False # Create pointer for views
 
 
+def _normalize_label(value: str) -> str:
+    """Lowercase, trim, and strip accents so strings match despite encoding issues."""
+    normalized = unicodedata.normalize("NFKD", value.casefold())
+    return "".join(ch for ch in normalized if not unicodedata.combining(ch)).strip()
+
+
+def _label_variants(value: str) -> List[str]:
+    """Return the original string plus best-effort re-encodings to handle cp1252/utf8 mixups."""
+    variants = {value}
+    try:
+        repaired = value.encode("latin1").decode("utf-8")
+        variants.add(repaired)
+    except Exception:
+        pass
+    try:
+        flipped = value.encode("utf-8").decode("latin1")
+        variants.add(flipped)
+    except Exception:
+        pass
+    return list(variants)
+
+
 def ensure_task_c_views(db: Session) -> None:
     """Keyrum view skipanirnar einu sinni"""
     global _TASK_C_VIEWS_CREATED
@@ -151,15 +174,24 @@ def ensure_task_c_views(db: Session) -> None:
     _TASK_C_VIEWS_CREATED = True # View created verður true ef það tókst að gera þau
 
 
+def _add_name_variants(target: Dict[str, int], label: str | None, identifier: int) -> None:
+    if not label:
+        return
+    for variant in _label_variants(label):
+        normalized = _normalize_label(variant)
+        if normalized:
+            target[normalized] = identifier
+
+
 def _load_names(db: Session) -> Tuple[Dict[str, int], Dict[str, int], Dict[str, int]]:
-    """Sækjum einföld kort yfir nöfn -> id."""
+    """Sækjum einföld kort yfir nöfn -> id (með normaliseruðum leitarlyklum)."""
     plant_names: Dict[str, int] = {}
     for plant_id, name in (
         db.query(PowerPlant.id, EnergyUnit.name)
         .join(EnergyUnit, PowerPlant.id == EnergyUnit.id)
         .all()
     ):
-        plant_names[name] = plant_id
+        _add_name_variants(plant_names, name, plant_id)
 
     substation_names: Dict[str, int] = {}
     for sub_id, name in (
@@ -167,7 +199,7 @@ def _load_names(db: Session) -> Tuple[Dict[str, int], Dict[str, int], Dict[str, 
         .join(EnergyUnit, Substation.id == EnergyUnit.id)
         .all()
     ):
-        substation_names[name] = sub_id
+        _add_name_variants(substation_names, name, sub_id)
 
     customer_names: Dict[str, int] = {}
     for user, info in (
@@ -175,7 +207,7 @@ def _load_names(db: Session) -> Tuple[Dict[str, int], Dict[str, int], Dict[str, 
             UserInfo, EnergyUser.kennitala == UserInfo.kennitala
         )
     ):
-        customer_names[info.name] = user.id
+        _add_name_variants(customer_names, info.name, user.id)
 
     return plant_names, substation_names, customer_names
 
@@ -206,7 +238,8 @@ def _find_substation_id(
     force_sender: bool,
 ) -> int:
     """Veljum einfaldlega fyrsta substation sem passar."""
-    sub_id = substation_names.get(sender_name)
+    sender_key = _normalize_label(sender_name)
+    sub_id = substation_names.get(sender_key)
     if sub_id and (plant_id, sub_id) in plant_pairs:
         return sub_id
 
@@ -237,11 +270,11 @@ def _build_plant_measurements(
     payload: List[Dict[str, object]] = []
 
     for row in rows:
-        measure = row.measurement_type.lower()
+        measure = _normalize_label(row.measurement_type)
         if "fram" not in measure and "inn" not in measure:
             continue
 
-        plant_id = plant_names.get(row.plant_name)
+        plant_id = plant_names.get(_normalize_label(row.plant_name))
         if plant_id is None:
             raise HTTPException(
                 status_code=400,
@@ -283,13 +316,14 @@ def _build_user_measurements(
     payload: List[Dict[str, object]] = []
 
     for row in rows:
-        measure = row.measurement_type.lower()
-        if "útt" not in measure and "utt" not in measure:
+        measure = _normalize_label(row.measurement_type)
+        if "utt" not in measure:
             continue
 
-        plant_id = plant_names.get(row.plant_name)
-        sub_id = substation_names.get(row.sender_name)
-        user_id = customer_names.get(row.customer_name or "")
+        plant_id = plant_names.get(_normalize_label(row.plant_name))
+        sub_id = substation_names.get(_normalize_label(row.sender_name))
+        customer_key = _normalize_label(row.customer_name) if row.customer_name else ""
+        user_id = customer_names.get(customer_key)
 
         if plant_id is None or sub_id is None or user_id is None:
             raise HTTPException(
