@@ -30,10 +30,10 @@ JOIN public.energy_unit eu ON eu.name = ppp.name
 JOIN public.energy_delivered ed ON ed.pwr_plant_id = eu.id AND ed.month = ppp.month
 ORDER BY ppp.name, ppp.month
 
--- Búum til 3 views til að einfalda fyrirsögn sem við þurfum að keyra í kjölfarið. 
--- Fyrsta viewið (energy_delivered) reiknar saman heildarorku sem hefur verið afhent frá hverju orkuveri á hverjum mánuði. 
--- Annað viewið (pwr_plant_production) reiknar saman heildarframleiðslu og innmötun í hverju orkuveri á hverjum mánuði. 
--- Þriðja viewið (energy_flow) sameinar þessi tvö views til að sýna orkuflæði frá framleiðslu til afhendingar fyrir hvert orkuver og mánuð.
+-- We create 3 views so we can simplify the queries we need to run later. 
+-- The first view (energy_delivered) calculates the total energy delivered from each power plant for each month. 
+-- The second view (pwr_plant_production) calculates the total production and substation power for each power plant for each month. 
+-- The third view (energy_flow) combines these two views to show the energy flow from production to delivery for each power plant and month.
 
 -- Query 3
 SELECT 
@@ -57,7 +57,7 @@ JOIN public.energy_unit eunit ON eunit.id = sume.pwr_plant_id
 GROUP BY eunit.name, ui.owner, EXTRACT(MONTH FROM sume.time), EXTRACT(year FROM sume.time)
 ORDER BY eunit.name, EXTRACT(MONTH FROM sume.time), ui.owner ASC
 
--- í gamla query-inu þá vorum við bara að vinna með eina töflu en í þessu query-i þá erum við að vinna með 4 töflur og því þurftum við að gera 3 join til að ná í allar upplýsingar sem við þurfum.
+-- In the old query we where woí gamla query-inu þá vorum við bara að vinna með eina töflu en í þessu query-i þá erum við að vinna með 4 töflur og því þurftum við að gera 3 join til að ná í allar upplýsingar sem við þurfum.
 -- Við byrjum á því að tengja sub_user_measurements við energy_user til að fá upplýsingar um hverjir eru að nota orkuna, síðan tengjum við user_info til að fá nöfnin á þessum notendum og að lokum tengjum við energy_unit til að fá nöfnin á orkuverunum. 
 -- Síðan er þetta allt hópað eftir orkuveri, ári, mánuði og nafni notanda og lögð saman fyrir hverja þessa hópa.
 
