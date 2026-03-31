@@ -275,16 +275,24 @@ def get_monthly_energy_flow_data(
 
     query = text(
         """
-            SELECT eu.name, EXTRACT(YEAR FROM psm.time) AS year, EXTRACT(MONTH FROM psm.time) AS month, psm."type" AS measurement_type, SUM(psm.pwr_measurement_kwh) AS total_kwh
+            SELECT eu.name AS power_plant_source,
+                   EXTRACT(YEAR FROM psm.time) AS year,
+                   EXTRACT(MONTH FROM psm.time) AS month,
+                   psm."type" AS measurement_type,
+                   SUM(psm.pwr_measurement_kwh) AS total_kwh
             FROM public.plant_sub_measurements psm
             JOIN public.energy_unit eu ON eu.id = psm.plant_id
             GROUP BY eu.name, EXTRACT(YEAR FROM psm.time), EXTRACT(MONTH FROM psm.time), psm.type
             UNION
-            SELECT eu.name, EXTRACT(YEAR FROM sume.time) AS year, EXTRACT(MONTH FROM sume.time) AS month, 'Úttekt' AS measurement_type, SUM(sume.pwr_measurement_kwh) AS total_kwh
+            SELECT eu.name AS power_plant_source,
+                   EXTRACT(YEAR FROM sume.time) AS year,
+                   EXTRACT(MONTH FROM sume.time) AS month,
+                   'Úttekt' AS measurement_type,
+                   SUM(sume.pwr_measurement_kwh) AS total_kwh
             FROM public.sub_user_measurements sume
             JOIN public.energy_unit eu ON eu.id = sume.pwr_plant_id
             GROUP BY eu.name, EXTRACT(YEAR FROM sume.time), EXTRACT(MONTH FROM sume.time)
-            ORDER BY name, year, month, total_kwh DESC
+            ORDER BY power_plant_source, year, month, total_kwh DESC
         """
     )
 
@@ -306,13 +314,17 @@ def get_monthly_company_usage_data(
 
     query = text(
         """
-           SELECT eunit.name, EXTRACT(year FROM sume.time) AS year, EXTRACT(MONTH FROM sume.time) AS month, ui.owner AS customer_name, SUM(sume.pwr_measurement_kwh) AS total_kwh
+           SELECT eunit.name AS power_plant_source,
+                  EXTRACT(year FROM sume.time) AS year,
+                  EXTRACT(MONTH FROM sume.time) AS month,
+                  ui.owner AS customer_name,
+                  SUM(sume.pwr_measurement_kwh) AS total_kwh
             FROM public.sub_user_measurements sume
             JOIN public.energy_user eu ON eu.id = sume.energy_user_id
             JOIN public.user_info ui ON ui.kennitala = eu.kennitala
             JOIN public.energy_unit eunit ON eunit.id = sume.pwr_plant_id
             GROUP BY eunit.name, ui.owner, EXTRACT(MONTH FROM sume.time), EXTRACT(year FROM sume.time)
-            ORDER BY eunit.name, EXTRACT(MONTH FROM sume.time), ui.owner ASC
+            ORDER BY power_plant_source, EXTRACT(MONTH FROM sume.time), ui.owner ASC
         """
     )
 
@@ -334,16 +346,32 @@ def get_monthly_plant_loss_ratios_data(
 
     query = text(
         """
-            SELECT eu.name, EXTRACT(YEAR FROM psm.time) AS year, EXTRACT(MONTH FROM psm.time) AS month, psm."type" AS measurement_type, SUM(psm.pwr_measurement_kwh) AS total_kwh
-            FROM public.plant_sub_measurements psm
-            JOIN public.energy_unit eu ON eu.id = psm.plant_id
-            GROUP BY eu.name, EXTRACT(YEAR FROM psm.time), EXTRACT(MONTH FROM psm.time), psm.type
-            UNION
-            SELECT eu.name, EXTRACT(YEAR FROM sume.time) AS year, EXTRACT(MONTH FROM sume.time) AS month, 'Úttekt' AS measurement_type, SUM(sume.pwr_measurement_kwh) AS total_kwh
-            FROM public.sub_user_measurements sume
-            JOIN public.energy_unit eu ON eu.id = sume.pwr_plant_id
-            GROUP BY eu.name, EXTRACT(YEAR FROM sume.time), EXTRACT(MONTH FROM sume.time)
-            ORDER BY name, year, month, total_kwh DESC
+            WITH plant_totals AS (
+                SELECT
+                    power_plant_source,
+                    SUM(total_production_kwh) AS total_production,
+                    SUM(total_substation_pwr_kwh) AS total_to_substations,
+                    SUM(delivered_pwr) AS total_to_users
+                FROM public.energy_flow
+                WHERE MAKE_DATE(year, month, 1) >= :from_date
+                  AND MAKE_DATE(year, month, 1) <= :to_date
+                GROUP BY power_plant_source
+            )
+            SELECT
+                power_plant_source,
+                CASE
+                    WHEN total_production = 0 THEN 0
+                    ELSE (total_production - total_to_substations) / total_production
+                END AS plant_to_substation_loss_ratio,
+                CASE
+                    WHEN total_production = 0 THEN 0
+                    ELSE (
+                        total_production
+                        - COALESCE(total_to_users, 0)
+                    ) / total_production
+                END AS total_system_loss_ratio
+            FROM plant_totals
+            ORDER BY power_plant_source
         """
     )
 
