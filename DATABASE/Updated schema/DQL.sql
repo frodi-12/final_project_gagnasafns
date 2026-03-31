@@ -30,7 +30,7 @@ JOIN public.energy_unit eu ON eu.name = ppp.name
 JOIN public.energy_delivered ed ON ed.pwr_plant_id = eu.id AND ed.month = ppp.month
 ORDER BY ppp.name, ppp.month
 
--- We create 3 views so we can simplify the queries we need to run later. 
+-- 3 views are created to simplify the queries that need to run later. 
 -- The first view (energy_delivered) calculates the total energy delivered from each power plant for each month. 
 -- The second view (pwr_plant_production) calculates the total production and substation power for each power plant for each month. 
 -- The third view (energy_flow) combines these two views to show the energy flow from production to delivery for each power plant and month.
@@ -57,8 +57,9 @@ JOIN public.energy_unit eunit ON eunit.id = sume.pwr_plant_id
 GROUP BY eunit.name, ui.owner, EXTRACT(MONTH FROM sume.time), EXTRACT(year FROM sume.time)
 ORDER BY eunit.name, EXTRACT(MONTH FROM sume.time), ui.owner ASC
 
--- In the old query we were only working with one table, but in this query we are working with four tables and therefore we need to make three joins to get all the information we need.
--- We join sub_user_measurements with energy_user to get information about who is using the energy, then we join with user_info to get the names of these users and finally we join with energy_unit to get the names of the power plants. 
+-- The previous query operated on a single table, in this query four tables are used, and therefore it requires three joins to retrieve all necessary information.
+-- joining sub_user_measurements with energy_user to get information about who is using the energy, 
+-- then it is joined with user_info to retrieve user names and then joined with energy_unit to get the names of the power plants. 
 -- Then all of this is grouped by power plant, year, month and user name and summed up for each of these groups.
 
 --Query 1
@@ -83,7 +84,8 @@ JOIN public.energy_unit eu ON eu.id = sume.pwr_plant_id
 GROUP BY eu.name, EXTRACT(YEAR FROM sume.time), EXTRACT(MONTH FROM sume.time)
 ORDER BY power_plant_source, year, month, total_kwh DESC
 
--- In the old query we where only working with one table, but in this query we are working with four tables and therefore we need to make three joins to get all the information we need.
--- We join sub_user_measurements with energy_user to get information about who is using the energy, then we join with user_info to get the names of these users and finally we join with energy_unit to get the names of the power plants. 
+-- The previous query operated on a single table, in this query four tables are used, and therefore it requires three joins to retrieve all necessary information.
+-- joining sub_user_measurements with energy_user to get information about who is using the energy, 
+-- then it is joined with user_info to retrieve user names and then joined with energy_unit to get the names of the power plants. 
 -- Then all of this is grouped by power plant, year, month and user name and summed up for each of these groups.
 
