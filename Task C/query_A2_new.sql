@@ -1,12 +1,10 @@
--- Einföld samantekt á úttektum með energy_flow view (sjá query_A3_new)
+-- Einföld samantekt á úttektum fyrir hvern viðskiptavin (sjá monthly_company_usage_view)
 SELECT
-    name AS power_plant_source,
-    2025 AS year,
+    power_plant_source,
+    customer_name,
+    year,
     month,
-    'Úttekt' AS measurement_type,
-    CASE
-        WHEN delivered_pwr IS NULL THEN 0
-        ELSE delivered_pwr
-    END AS total_kwh
-FROM public.energy_flow
-ORDER BY power_plant_source, month;
+    total_kwh
+FROM public.monthly_company_usage_view
+WHERE year = 2025
+ORDER BY power_plant_source, year, month, customer_name;

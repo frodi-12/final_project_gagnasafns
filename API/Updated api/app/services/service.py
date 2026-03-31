@@ -114,7 +114,7 @@ TASK_C_VIEW_STATEMENTS = [
     """,
 ]
 
-_TASK_C_VIEWS_CREATED = False
+_TASK_C_VIEWS_CREATED = False # Create pointer for views
 
 
 def ensure_task_c_views(db: Session) -> None:

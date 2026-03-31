@@ -47,6 +47,25 @@ LEFT JOIN public.energy_delivered ed
       AND ed.month = ppp.month
 ORDER BY ppp.name, ppp.year, ppp.month;
 
+CREATE VIEW public.monthly_company_usage_view AS
+SELECT
+    plants.name AS power_plant_source,
+    ui.name AS customer_name,
+    EXTRACT(YEAR FROM sumu.time)::int AS year,
+    EXTRACT(MONTH FROM sumu.time)::int AS month,
+    SUM(sumu.pwr_measurement_kwh) AS total_kwh
+FROM public.sub_user_measurements AS sumu
+JOIN public.energy_user AS eu ON sumu.energy_user_id = eu.id
+JOIN public.user_info AS ui ON eu.kennitala = ui.kennitala
+JOIN public.plant_substation_connection AS psc
+    ON sumu.substation_id = psc.substation_id
+JOIN public.energy_unit AS plants ON plants.id = psc.plant_id
+GROUP BY
+    plants.name,
+    ui.name,
+    EXTRACT(YEAR FROM sumu.time)::int,
+    EXTRACT(MONTH FROM sumu.time)::int;
+
 
 -- Query 1
 
