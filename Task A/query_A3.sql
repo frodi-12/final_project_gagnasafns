@@ -1,5 +1,3 @@
-DROP VIEW IF EXISTS monthly_plant_energy;
-
 CREATE VIEW monthly_plant_energy AS
 SELECT
     om.eining_heiti AS power_plant_source,
