@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import Dict, List, Tuple
-import unicodedata
 
 from fastapi import HTTPException, UploadFile
 from sqlalchemy import text
@@ -32,130 +31,40 @@ Swagger UI: http://localhost:8000/docs
 
 # Fasti fyrir viewin okkar
 TASK_C_DROP_STATEMENTS = [
-    "DROP VIEW IF EXISTS public.substation_plant_map CASCADE",
-    "DROP VIEW IF EXISTS public.energy_flow CASCADE",
-    "DROP VIEW IF EXISTS public.monthly_company_usage_view CASCADE",
     "DROP VIEW IF EXISTS public.energy_delivered CASCADE",
-    "DROP VIEW IF EXISTS public.pwr_plant_monthly_totals CASCADE",
+    "DROP VIEW IF EXISTS public.pwr_plant_production CASCADE",
+    "DROP VIEW IF EXISTS energy_flow CASCADE",
+
 ]
 
 TASK_C_VIEW_STATEMENTS = [
     """
-    CREATE OR REPLACE VIEW public.substation_plant_map AS
-    WITH RECURSIVE sub_map AS (
-        SELECT
-            psc.substation_id,
-            psc.plant_id
-        FROM public.plant_substation_connection AS psc
-        UNION ALL
-        SELECT
-            ssc.receiving_station_id AS substation_id,
-            sub_map.plant_id
-        FROM public.substation_substation_connection AS ssc
-        JOIN sub_map ON ssc.sending_station_id = sub_map.substation_id
-    )
-    SELECT DISTINCT substation_id, plant_id
-    FROM sub_map
-    """,
-    """
-    CREATE OR REPLACE VIEW public.pwr_plant_monthly_totals AS
-    SELECT
-        eu.id AS plant_id,
-        eu.name,
-        EXTRACT(YEAR FROM psm.time)::int AS year,
-        EXTRACT(MONTH FROM psm.time)::int AS month,
-        SUM(
-            CASE WHEN psm."type" ILIKE 'Framlei%' THEN psm.pwr_measurement_kwh ELSE 0 END
-        ) AS total_production_kwh,
-        SUM(
-            CASE WHEN psm."type" ILIKE 'Innm%' THEN psm.pwr_measurement_kwh ELSE 0 END
-        ) AS total_substation_pwr_kwh
-    FROM public.plant_sub_measurements AS psm
-    JOIN public.pwr_plant AS pp ON psm.plant_id = pp.id
-    JOIN public.energy_unit AS eu ON eu.id = pp.id
-    GROUP BY
-        eu.id,
-        eu.name,
-        EXTRACT(YEAR FROM psm.time)::int,
-        EXTRACT(MONTH FROM psm.time)::int
-    """,
-    """
-    CREATE OR REPLACE VIEW public.energy_delivered AS
-    SELECT
-        spm.plant_id AS pwr_plant_id,
-        EXTRACT(YEAR FROM sumu.time)::int AS year,
-        EXTRACT(MONTH FROM sumu.time)::int AS month,
-        SUM(sumu.pwr_measurement_kwh) AS delivered_pwr
-    FROM public.sub_user_measurements AS sumu
-    JOIN public.substation_plant_map AS spm
-        ON sumu.substation_id = spm.substation_id
-    GROUP BY
-        spm.plant_id,
-        EXTRACT(YEAR FROM sumu.time)::int,
-        EXTRACT(MONTH FROM sumu.time)::int
-    """,
-    """
-    CREATE OR REPLACE VIEW public.energy_flow AS
-    SELECT
-        ppt.plant_id,
-        ppt.name,
-        ppt.year,
-        ppt.month,
-        ppt.total_production_kwh,
-        ppt.total_substation_pwr_kwh,
-        CASE WHEN ed.delivered_pwr IS NULL THEN 0 ELSE ed.delivered_pwr END AS delivered_pwr
-    FROM public.pwr_plant_monthly_totals AS ppt
-    LEFT JOIN public.energy_delivered AS ed
-           ON ed.pwr_plant_id = ppt.plant_id
-          AND ed.year = ppt.year
-          AND ed.month = ppt.month
-    ORDER BY ppt.name, ppt.year, ppt.month
-    """,
-    """
-    CREATE OR REPLACE VIEW public.monthly_company_usage_view AS
-    SELECT
-        plants.name AS power_plant_source,
-        ui.name AS customer_name,
-        EXTRACT(YEAR FROM sumu.time)::int AS year,
-        EXTRACT(MONTH FROM sumu.time)::int AS month,
-        SUM(sumu.pwr_measurement_kwh) AS total_kwh
-    FROM public.sub_user_measurements AS sumu
-    JOIN public.energy_user AS eu ON sumu.energy_user_id = eu.id
-    JOIN public.user_info AS ui ON eu.kennitala = ui.kennitala
-    JOIN public.substation_plant_map AS spm
-        ON sumu.substation_id = spm.substation_id
-    JOIN public.energy_unit AS plants ON plants.id = spm.plant_id
-    GROUP BY
-        plants.name,
-        ui.name,
-        EXTRACT(YEAR FROM sumu.time)::int,
-        EXTRACT(MONTH FROM sumu.time)::int
+    CREATE VIEW public.energy_delivered AS
+        SELECT su.pwr_plant_id, EXTRACT(MONTH FROM su.time) AS month, SUM(su.pwr_measurement_kwh) AS delivered_pwr
+        FROM public.sub_user_measurements su
+        GROUP BY su.pwr_plant_id, EXTRACT(MONTH FROM su.time)
+
+    CREATE VIEW public.pwr_plant_production AS
+    SELECT 
+        p.name,
+        psm.plant_id AS plant_id,
+        EXTRACT(MONTH FROM psm.time) AS month,
+        SUM(psm.pwr_measurement_kwh) FILTER (WHERE psm.type = 'Framleiðsla') AS total_production_kwh,
+        SUM(psm.pwr_measurement_kwh) FILTER (WHERE psm.type = 'Innmötun') AS total_substation_pwr_kwh
+    FROM public.plant_sub_measurements psm
+    JOIN public.energy_unit p ON p.id = psm.plant_id
+    GROUP BY psm.plant_id, p.name, EXTRACT(MONTH FROM psm.time)
+
+    CREATE VIEW energy_flow AS
+        SELECT ppp.name, ppp.month, ppp.total_production_kwh, ppp.total_substation_pwr_kwh, ed.delivered_pwr
+        FROM public.pwr_plant_production ppp
+        JOIN public.energy_unit eu ON eu.name = ppp.name
+        JOIN public.energy_delivered ed ON ed.pwr_plant_id = eu.id AND ed.month = ppp.month
+        ORDER BY ppp.name, ppp.month
     """,
 ]
 
 _TASK_C_VIEWS_CREATED = False # Create pointer for views
-
-
-def _normalize_label(value: str) -> str:
-    """Lowercase, trim, and strip accents so strings match despite encoding issues."""
-    normalized = unicodedata.normalize("NFKD", value.casefold())
-    return "".join(ch for ch in normalized if not unicodedata.combining(ch)).strip()
-
-
-def _label_variants(value: str) -> List[str]:
-    """Return the original string plus best-effort re-encodings to handle cp1252/utf8 mixups."""
-    variants = {value}
-    try:
-        repaired = value.encode("latin1").decode("utf-8")
-        variants.add(repaired)
-    except Exception:
-        pass
-    try:
-        flipped = value.encode("utf-8").decode("latin1")
-        variants.add(flipped)
-    except Exception:
-        pass
-    return list(variants)
 
 
 def ensure_task_c_views(db: Session) -> None:
@@ -174,24 +83,15 @@ def ensure_task_c_views(db: Session) -> None:
     _TASK_C_VIEWS_CREATED = True # View created verður true ef það tókst að gera þau
 
 
-def _add_name_variants(target: Dict[str, int], label: str | None, identifier: int) -> None:
-    if not label:
-        return
-    for variant in _label_variants(label):
-        normalized = _normalize_label(variant)
-        if normalized:
-            target[normalized] = identifier
-
-
 def _load_names(db: Session) -> Tuple[Dict[str, int], Dict[str, int], Dict[str, int]]:
-    """Sækjum einföld kort yfir nöfn -> id (með normaliseruðum leitarlyklum)."""
+    """Sækjum einföld kort yfir nöfn -> id."""
     plant_names: Dict[str, int] = {}
     for plant_id, name in (
         db.query(PowerPlant.id, EnergyUnit.name)
         .join(EnergyUnit, PowerPlant.id == EnergyUnit.id)
         .all()
     ):
-        _add_name_variants(plant_names, name, plant_id)
+        plant_names[name] = plant_id
 
     substation_names: Dict[str, int] = {}
     for sub_id, name in (
@@ -199,7 +99,7 @@ def _load_names(db: Session) -> Tuple[Dict[str, int], Dict[str, int], Dict[str, 
         .join(EnergyUnit, Substation.id == EnergyUnit.id)
         .all()
     ):
-        _add_name_variants(substation_names, name, sub_id)
+        substation_names[name] = sub_id
 
     customer_names: Dict[str, int] = {}
     for user, info in (
@@ -207,7 +107,7 @@ def _load_names(db: Session) -> Tuple[Dict[str, int], Dict[str, int], Dict[str, 
             UserInfo, EnergyUser.kennitala == UserInfo.kennitala
         )
     ):
-        _add_name_variants(customer_names, info.name, user.id)
+        customer_names[info.name] = user.id
 
     return plant_names, substation_names, customer_names
 
@@ -238,8 +138,7 @@ def _find_substation_id(
     force_sender: bool,
 ) -> int:
     """Veljum einfaldlega fyrsta substation sem passar."""
-    sender_key = _normalize_label(sender_name)
-    sub_id = substation_names.get(sender_key)
+    sub_id = substation_names.get(sender_name)
     if sub_id and (plant_id, sub_id) in plant_pairs:
         return sub_id
 
@@ -270,11 +169,11 @@ def _build_plant_measurements(
     payload: List[Dict[str, object]] = []
 
     for row in rows:
-        measure = _normalize_label(row.measurement_type)
+        measure = row.measurement_type.lower()
         if "fram" not in measure and "inn" not in measure:
             continue
 
-        plant_id = plant_names.get(_normalize_label(row.plant_name))
+        plant_id = plant_names.get(row.plant_name)
         if plant_id is None:
             raise HTTPException(
                 status_code=400,
@@ -316,14 +215,13 @@ def _build_user_measurements(
     payload: List[Dict[str, object]] = []
 
     for row in rows:
-        measure = _normalize_label(row.measurement_type)
-        if "utt" not in measure:
+        measure = row.measurement_type.lower()
+        if "útt" not in measure and "utt" not in measure:
             continue
 
-        plant_id = plant_names.get(_normalize_label(row.plant_name))
-        sub_id = substation_names.get(_normalize_label(row.sender_name))
-        customer_key = _normalize_label(row.customer_name) if row.customer_name else ""
-        user_id = customer_names.get(customer_key)
+        plant_id = plant_names.get(row.plant_name)
+        sub_id = substation_names.get(row.sender_name)
+        user_id = customer_names.get(row.customer_name or "")
 
         if plant_id is None or sub_id is None or user_id is None:
             raise HTTPException(
@@ -356,6 +254,8 @@ def _build_user_measurements(
 
 
 # Task C5
+
+
 def get_monthly_energy_flow_data(
     from_date: datetime,
     to_date: datetime,
@@ -366,50 +266,16 @@ def get_monthly_energy_flow_data(
 
     query = text(
         """
-            SELECT
-                name AS power_plant_source,
-                year,
-                month,
-                'Framleiðsla' AS measurement_type,
-                CASE
-                    WHEN total_production_kwh IS NULL THEN 0
-                    ELSE total_production_kwh
-                END AS total_kwh
-            FROM public.energy_flow
-            WHERE MAKE_DATE(year, month, 1) >= :from_date
-              AND MAKE_DATE(year, month, 1) < :to_date
-
-            UNION ALL
-
-            SELECT
-                name AS power_plant_source,
-                year,
-                month,
-                'Innmötun' AS measurement_type,
-                CASE
-                    WHEN total_substation_pwr_kwh IS NULL THEN 0
-                    ELSE total_substation_pwr_kwh
-                END AS total_kwh
-            FROM public.energy_flow
-            WHERE MAKE_DATE(year, month, 1) >= :from_date
-              AND MAKE_DATE(year, month, 1) < :to_date
-
-            UNION ALL
-
-            SELECT
-                name AS power_plant_source,
-                year,
-                month,
-                'Úttekt' AS measurement_type,
-                CASE
-                    WHEN delivered_pwr IS NULL THEN 0
-                    ELSE delivered_pwr
-                END AS total_kwh
-            FROM public.energy_flow
-            WHERE MAKE_DATE(year, month, 1) >= :from_date
-              AND MAKE_DATE(year, month, 1) < :to_date
-
-            ORDER BY power_plant_source, year, month, total_kwh DESC
+            SELECT eu.name, EXTRACT(YEAR FROM psm.time) AS year, EXTRACT(MONTH FROM psm.time) AS month, psm."type" AS measurement_type, SUM(psm.pwr_measurement_kwh) AS total_kwh
+            FROM public.plant_sub_measurements psm
+            JOIN public.energy_unit eu ON eu.id = psm.plant_id
+            GROUP BY eu.name, EXTRACT(YEAR FROM psm.time), EXTRACT(MONTH FROM psm.time), psm.type
+            UNION
+            SELECT eu.name, EXTRACT(YEAR FROM sume.time) AS year, EXTRACT(MONTH FROM sume.time) AS month, 'Úttekt' AS measurement_type, SUM(sume.pwr_measurement_kwh) AS total_kwh
+            FROM public.sub_user_measurements sume
+            JOIN public.energy_unit eu ON eu.id = sume.pwr_plant_id
+            GROUP BY eu.name, EXTRACT(YEAR FROM sume.time), EXTRACT(MONTH FROM sume.time)
+            ORDER BY name, year, month, total_kwh DESC
         """
     )
 
@@ -431,16 +297,13 @@ def get_monthly_company_usage_data(
 
     query = text(
         """
-            SELECT
-                power_plant_source,
-                customer_name,
-                year,
-                month,
-                total_kwh
-            FROM public.monthly_company_usage_view
-            WHERE MAKE_DATE(year, month, 1) >= :from_date
-              AND MAKE_DATE(year, month, 1) < :to_date
-            ORDER BY power_plant_source, year, month, customer_name
+           SELECT eunit.name, EXTRACT(year FROM sume.time) AS year, EXTRACT(MONTH FROM sume.time) AS month, ui.owner AS customer_name, SUM(sume.pwr_measurement_kwh) AS total_kwh
+            FROM public.sub_user_measurements sume
+            JOIN public.energy_user eu ON eu.id = sume.energy_user_id
+            JOIN public.user_info ui ON ui.kennitala = eu.kennitala
+            JOIN public.energy_unit eunit ON eunit.id = sume.pwr_plant_id
+            GROUP BY eunit.name, ui.owner, EXTRACT(MONTH FROM sume.time), EXTRACT(year FROM sume.time)
+            ORDER BY eunit.name, EXTRACT(MONTH FROM sume.time), ui.owner ASC
         """
     )
 
@@ -462,32 +325,16 @@ def get_monthly_plant_loss_ratios_data(
 
     query = text(
         """
-            WITH plant_totals AS (
-                SELECT
-                    name AS power_plant_source,
-                    SUM(total_production_kwh) AS total_production,
-                    SUM(total_substation_pwr_kwh) AS total_to_substations,
-                    SUM(delivered_pwr) AS total_to_users
-                FROM public.energy_flow
-                WHERE MAKE_DATE(year, month, 1) >= :from_date
-                  AND MAKE_DATE(year, month, 1) < :to_date
-                GROUP BY name
-            )
-            SELECT
-                power_plant_source,
-                CASE
-                    WHEN total_production = 0 THEN 0
-                    ELSE (total_production - total_to_substations) / total_production
-                END AS plant_to_substation_loss_ratio,
-                CASE
-                    WHEN total_production = 0 THEN 0
-                    ELSE (
-                        total_production
-                        - CASE WHEN total_to_users IS NULL THEN 0 ELSE total_to_users END
-                    ) / total_production
-                END AS total_system_loss_ratio
-            FROM plant_totals
-            ORDER BY power_plant_source
+            SELECT eu.name, EXTRACT(YEAR FROM psm.time) AS year, EXTRACT(MONTH FROM psm.time) AS month, psm."type" AS measurement_type, SUM(psm.pwr_measurement_kwh) AS total_kwh
+            FROM public.plant_sub_measurements psm
+            JOIN public.energy_unit eu ON eu.id = psm.plant_id
+            GROUP BY eu.name, EXTRACT(YEAR FROM psm.time), EXTRACT(MONTH FROM psm.time), psm.type
+            UNION
+            SELECT eu.name, EXTRACT(YEAR FROM sume.time) AS year, EXTRACT(MONTH FROM sume.time) AS month, 'Úttekt' AS measurement_type, SUM(sume.pwr_measurement_kwh) AS total_kwh
+            FROM public.sub_user_measurements sume
+            JOIN public.energy_unit eu ON eu.id = sume.pwr_plant_id
+            GROUP BY eu.name, EXTRACT(YEAR FROM sume.time), EXTRACT(MONTH FROM sume.time)
+            ORDER BY name, year, month, total_kwh DESC
         """
     )
 
@@ -546,7 +393,7 @@ async def insert_measurements_data(
         if user_measurements:
             db.bulk_insert_mappings(SubUserMeasurements, user_measurements)
         db.commit()
-    except Exception as exc:  # pragma: no cover
+    except Exception as exc: 
         db.rollback()
         raise HTTPException(status_code=500, detail=str(exc))
 

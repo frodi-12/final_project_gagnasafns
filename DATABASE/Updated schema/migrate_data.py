@@ -154,9 +154,9 @@ STATEMENTS = [
 
 def main() -> None:
     connection = psycopg2.connect(
-        dbname="ru_db",
-        user="sindri",
-        password="Ebba1505",
+        dbname="orkuflaediisland",
+        user="frodijonsson",
+        password="dt44\"J53DK",
         host="localhost",
         port=5432,
     )

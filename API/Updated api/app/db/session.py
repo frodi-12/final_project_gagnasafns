@@ -1,10 +1,10 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-USER = "sindri"
-PASSWORD = "Ebba1505"
+USER = "frodijonsson"
+PASSWORD = "dt44\"J53DK"
 PORT = "5432"
-DATABASE_NAME = "ru_db"
+DATABASE_NAME = "orkuflaediisland"
 
 # run db command: python -m uvicorn app.main:app --reload --port 8000
 
