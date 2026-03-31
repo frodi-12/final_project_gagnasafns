@@ -22,5 +22,39 @@ SELECT
 FROM monthly_loss_view
 GROUP BY power_plant_source;
 
+SELECT 
+    psm.plant_ID AS power_plant_source,
+    (SUM(psm.generated_pwr) - SUM(psm.received_pwr)) / SUM(psm.generated_pwr) AS plant_to_substation_loss_ratio,
+    (SUM(psm.generated_pwr) - (SELECT SUM(sum.received_pwr) FROM public.sub_user_measurements sum)) / SUM(psm.generated_pwr) AS total_system_loss_ratio
+FROM public.plant_sub_measurements psm
+GROUP BY psm.plant_ID;
+
+CREATE VIEW public.energy_delivered AS
+SELECT su.pwr_plant_id, EXTRACT(MONTH FROM su.time) AS month, SUM(su.pwr_measurement_kwh) AS delivered_pwr
+FROM public.sub_user_measurements su
+GROUP BY su.pwr_plant_id, EXTRACT(MONTH FROM su.time)
+
+
+CREATE VIEW public.pwr_plant_production AS
+SELECT 
+    p.name,
+    psm.plant_id AS plant_id,
+    EXTRACT(MONTH FROM psm.time) AS month,
+    SUM(psm.pwr_measurement_kwh) FILTER (WHERE psm.type = 'Framleiðsla') AS total_production_kwh,
+    SUM(psm.pwr_measurement_kwh) FILTER (WHERE psm.type = 'Innmötun') AS total_substation_pwr_kwh
+FROM public.plant_sub_measurements psm
+JOIN public.energy_unit p ON p.id = psm.plant_id
+GROUP BY psm.plant_id, p.name, EXTRACT(MONTH FROM psm.time)
+
+CREATE VIEW energy_flow AS
+SELECT ppp.name, ppp.month, ppp.total_production_kwh, ppp.total_substation_pwr_kwh, ed.delivered_pwr
+FROM public.pwr_plant_production ppp
+JOIN public.energy_unit eu ON eu.name = ppp.name
+JOIN public.energy_delivered ed ON ed.pwr_plant_id = eu.id AND ed.month = ppp.month
+ORDER BY ppp.name, ppp.month
+
+SELECT * 
+FROM public.energy_flow
+
 
 
