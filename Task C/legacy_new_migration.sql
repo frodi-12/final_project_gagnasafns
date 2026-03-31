@@ -78,10 +78,11 @@ JOIN raforka_legacy.orku_einingar p ON p.heiti = om.eining_heiti
 WHERE om.tegund_maelingar ILIKE ANY (ARRAY['Framleiðsla','Innmötun']);
 
 INSERT INTO public.sub_user_measurements
-SELECT om.id, s.substation_id, s.energy_user_id, om.timi, om.gildi_kwh
+SELECT om.id, s.substation_id, s.energy_user_id, om.timi, om.gildi_kwh, eu.id
 FROM raforka_legacy.orku_maelingar om
 JOIN raforka_legacy.notendur_skraning u ON u.eigandi = om.notandi_heiti
-JOIN public.substation_user_connection s ON s.energy_user_id = u.id;
+JOIN public.substation_user_connection s ON s.energy_user_id = u.id
+JOIN public.energy_unit eu ON eu.name = om.eining_heiti;
 
 SELECT * FROM public.substation_user_connection;
 
