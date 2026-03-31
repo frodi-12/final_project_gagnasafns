@@ -1,4 +1,4 @@
--- Einföld samantekt á úttektum fyrir hvern viðskiptavin (sjá monthly_company_usage_view)
+-- Lesum úr monthly_company_usage_view til að fá viðskiptavinaflæði árið 2025
 SELECT
     power_plant_source,
     customer_name,

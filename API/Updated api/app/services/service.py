@@ -31,6 +31,7 @@ Swagger UI: http://localhost:8000/docs
 
 # Fasti fyrir viewin okkar
 TASK_C_DROP_STATEMENTS = [
+    "DROP VIEW IF EXISTS public.substation_plant_map CASCADE",
     "DROP VIEW IF EXISTS public.energy_flow CASCADE",
     "DROP VIEW IF EXISTS public.monthly_company_usage_view CASCADE",
     "DROP VIEW IF EXISTS public.energy_delivered CASCADE",
@@ -38,6 +39,23 @@ TASK_C_DROP_STATEMENTS = [
 ]
 
 TASK_C_VIEW_STATEMENTS = [
+    """
+    CREATE OR REPLACE VIEW public.substation_plant_map AS
+    WITH RECURSIVE sub_map AS (
+        SELECT
+            psc.substation_id,
+            psc.plant_id
+        FROM public.plant_substation_connection AS psc
+        UNION ALL
+        SELECT
+            ssc.receiving_station_id AS substation_id,
+            sub_map.plant_id
+        FROM public.substation_substation_connection AS ssc
+        JOIN sub_map ON ssc.sending_station_id = sub_map.substation_id
+    )
+    SELECT DISTINCT substation_id, plant_id
+    FROM sub_map
+    """,
     """
     CREATE OR REPLACE VIEW public.pwr_plant_monthly_totals AS
     SELECT
@@ -63,15 +81,15 @@ TASK_C_VIEW_STATEMENTS = [
     """
     CREATE OR REPLACE VIEW public.energy_delivered AS
     SELECT
-        psc.plant_id AS pwr_plant_id,
+        spm.plant_id AS pwr_plant_id,
         EXTRACT(YEAR FROM sumu.time)::int AS year,
         EXTRACT(MONTH FROM sumu.time)::int AS month,
         SUM(sumu.pwr_measurement_kwh) AS delivered_pwr
     FROM public.sub_user_measurements AS sumu
-    JOIN public.plant_substation_connection AS psc
-        ON sumu.substation_id = psc.substation_id
+    JOIN public.substation_plant_map AS spm
+        ON sumu.substation_id = spm.substation_id
     GROUP BY
-        psc.plant_id,
+        spm.plant_id,
         EXTRACT(YEAR FROM sumu.time)::int,
         EXTRACT(MONTH FROM sumu.time)::int
     """,
@@ -103,9 +121,9 @@ TASK_C_VIEW_STATEMENTS = [
     FROM public.sub_user_measurements AS sumu
     JOIN public.energy_user AS eu ON sumu.energy_user_id = eu.id
     JOIN public.user_info AS ui ON eu.kennitala = ui.kennitala
-    JOIN public.plant_substation_connection AS psc
-        ON sumu.substation_id = psc.substation_id
-    JOIN public.energy_unit AS plants ON plants.id = psc.plant_id
+    JOIN public.substation_plant_map AS spm
+        ON sumu.substation_id = spm.substation_id
+    JOIN public.energy_unit AS plants ON plants.id = spm.plant_id
     GROUP BY
         plants.name,
         ui.name,
