@@ -40,5 +40,15 @@ ORDER BY eunit.name, EXTRACT(MONTH FROM sume.time), ui.owner ASC
 
 --query a1
 
+SELECT eu.name, EXTRACT(YEAR FROM psm.time) AS year, EXTRACT(MONTH FROM psm.time) AS month, psm."type" AS measurement_type, SUM(psm.pwr_measurement_kwh) AS total_kwh
+FROM public.plant_sub_measurements psm
+JOIN public.energy_unit eu ON eu.id = psm.plant_id
+GROUP BY eu.name, EXTRACT(YEAR FROM psm.time), EXTRACT(MONTH FROM psm.time), psm.type
+UNION
+SELECT eu.name, EXTRACT(YEAR FROM sume.time) AS year, EXTRACT(MONTH FROM sume.time) AS month, 'Úttekt' AS measurement_type, SUM(sume.pwr_measurement_kwh) AS total_kwh
+FROM public.sub_user_measurements sume
+JOIN public.energy_unit eu ON eu.id = sume.pwr_plant_id
+GROUP BY eu.name, EXTRACT(YEAR FROM sume.time), EXTRACT(MONTH FROM sume.time)
+ORDER BY name, year, month, total_kwh DESC
 
 
