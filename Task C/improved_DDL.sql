@@ -111,8 +111,3 @@ CREATE TABLE public.sub_sub_measurements(
     received_pwr FLOAT NOT NULL,
     FOREIGN KEY (sending_station_ID, receiving_station_ID) REFERENCES public.substation_substation_connection(sending_station_ID, receiving_station_ID)
 );
-
-CREATE INDEX idx_psm_time ON plant_sub_measurements(time);
-CREATE INDEX idx_sum_time ON sub_user_measurements(time);
-CREATE INDEX idx_psm_substation ON plant_sub_measurements(substation_ID);
-CREATE INDEX idx_sum_substation ON sub_user_measurements(substation_ID);
