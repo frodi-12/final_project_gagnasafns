@@ -25,14 +25,20 @@ ORDER BY ppp.name, ppp.month
 
 
 -- Query 3
-SELECT power_plant_source,
+SELECT 
+    power_plant_source,
     AVG((total_production_kwh - total_substation_pwr_kwh)/ total_production_kwh) AS plant_to_sub_loss_ratio,
     AVG((total_production_kwh - delivered_pwr)/total_production_kwh) AS total_system_loss_ratio
 FROM public.energy_flow
 GROUP BY power_plant_source;
 
 -- Query 2
-SELECT eunit.name, EXTRACT(year FROM sume.time) AS year, EXTRACT(MONTH FROM sume.time) AS month, ui.owner AS customer_name, SUM(sume.pwr_measurement_kwh) AS total_kwh
+SELECT 
+    eunit.name AS power_plant_source, 
+    EXTRACT(year FROM sume.time) AS year, 
+    EXTRACT(MONTH FROM sume.time) AS month, 
+    ui.owner AS customer_name, 
+    SUM(sume.pwr_measurement_kwh) AS total_kwh
 FROM public.sub_user_measurements sume
 JOIN public.energy_user eu ON eu.id = sume.energy_user_id
 JOIN public.user_info ui ON ui.kennitala = eu.kennitala
@@ -41,8 +47,12 @@ GROUP BY eunit.name, ui.owner, EXTRACT(MONTH FROM sume.time), EXTRACT(year FROM 
 ORDER BY eunit.name, EXTRACT(MONTH FROM sume.time), ui.owner ASC
 
 --Query 1
-
-SELECT eu.name, EXTRACT(YEAR FROM psm.time) AS year, EXTRACT(MONTH FROM psm.time) AS month, psm."type" AS measurement_type, SUM(psm.pwr_measurement_kwh) AS total_kwh
+SELECT 
+    eu.name AS power_plant_source, 
+    EXTRACT(YEAR FROM psm.time) AS year, 
+    EXTRACT(MONTH FROM psm.time) AS month, 
+    psm."type" AS measurement_type, 
+    SUM(psm.pwr_measurement_kwh) AS total_kwh
 FROM public.plant_sub_measurements psm
 JOIN public.energy_unit eu ON eu.id = psm.plant_id
 GROUP BY eu.name, EXTRACT(YEAR FROM psm.time), EXTRACT(MONTH FROM psm.time), psm.type
@@ -51,7 +61,7 @@ SELECT eu.name, EXTRACT(YEAR FROM sume.time) AS year, EXTRACT(MONTH FROM sume.ti
 FROM public.sub_user_measurements sume
 JOIN public.energy_unit eu ON eu.id = sume.pwr_plant_id
 GROUP BY eu.name, EXTRACT(YEAR FROM sume.time), EXTRACT(MONTH FROM sume.time)
-ORDER BY name, year, month, total_kwh DESC
+ORDER BY power_plant_source, year, month, total_kwh DESC
 
 
 
