@@ -1,8 +1,8 @@
 -- Query 1
 SELECT
     om.eining_heiti AS power_plant_source,
-    EXTRACT(YEAR FROM om.timi) AS year,
-    EXTRACT(MONTH FROM om.timi) AS month,
+    EXTRACT(YEAR FROM om.timi)::int AS year,
+    EXTRACT(MONTH FROM om.timi)::int AS month,
     om.tegund_maelingar AS measurement_type,
     SUM(om.gildi_kwh) AS total_kwh
 FROM raforka_legacy.orku_maelingar om
