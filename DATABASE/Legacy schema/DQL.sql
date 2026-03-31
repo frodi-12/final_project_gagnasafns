@@ -1,6 +1,7 @@
 -- Task A2
 
 -- Query 1
+-- The query calculates the total monthly energy per power plant for each measurement type in 2025
 SELECT
     om.eining_heiti AS power_plant_source,
     EXTRACT(YEAR FROM om.timi)::int AS year,
@@ -17,6 +18,7 @@ GROUP BY om.eining_heiti, year, month, om.tegund_maelingar
 ORDER BY om.eining_heiti, month ASC, total_kwh DESC;
 
 -- Query 2
+-- The query calculates the total monthly energy withdrawn per power plant and customer from 2025
 SELECT
     om.eining_heiti AS power_plant_source,
     EXTRACT(YEAR FROM om.timi)::int AS year,
@@ -33,6 +35,9 @@ ORDER BY power_plant_source, year, month, customer_name;
 DROP VIEW IF EXISTS monthly_plant_energy;
 
 -- Query 3
+-- The query creates a monthly summary view per power plant for 2025
+-- and uses it to calculate average loss ratios for each power plant.
+
 CREATE VIEW monthly_plant_energy AS
 SELECT
     om.eining_heiti AS power_plant_source,
