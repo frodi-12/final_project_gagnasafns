@@ -14,7 +14,9 @@ from app.db.tables.sub_user_measurements import SubUserMeasurements
 from app.db.tables.substation import Substation
 from app.db.tables.substation_user_connection import SubstationUserConnection
 from app.db.tables.user_info import UserInfo
+from app.models.monthly_company_usage_model import MonthlyCompanyUsageModel
 from app.models.monthly_energy_flow_model import MonthlyPlantEnergyFlowModel
+from app.models.monthly_plant_loss_ratios import MonthlyPlantLossRatiosModel
 from app.models.parsed_data.normalized_measurement_row import (
     NormalizedMeasurementRow,
 )
@@ -255,6 +257,93 @@ def get_monthly_energy_flow_data(
     ]
 
 
+def get_monthly_company_usage_data(
+    from_date: datetime,
+    to_date: datetime,
+    db: Session,
+) -> List[MonthlyCompanyUsageModel]:
+    query = text(
+        """
+            SELECT
+                plant_unit.name AS power_plant_source,
+                ui.name AS customer_name,
+                EXTRACT(YEAR FROM sumu.time)::int AS year,
+                EXTRACT(MONTH FROM sumu.time)::int AS month,
+                SUM(sumu.received_pwr) AS total_kwh
+            FROM public.sub_user_measurements AS sumu
+            JOIN public.energy_user AS eu ON sumu.energy_user_id = eu.id
+            JOIN public.user_info AS ui ON eu.kennitala = ui.kennitala
+            JOIN public.plant_substation_connection AS psc
+                ON sumu.substation_id = psc.substation_id
+            JOIN public.energy_unit AS plant_unit ON plant_unit.id = psc.plant_id
+            WHERE sumu.time >= :from_date
+              AND sumu.time < :to_date
+            GROUP BY plant_unit.name, ui.name, year, month
+            ORDER BY plant_unit.name, year, month, customer_name
+        """
+    )
+
+    result = db.execute(query, {"from_date": from_date, "to_date": to_date})
+
+    return [
+        MonthlyCompanyUsageModel(**row._mapping)  # type: ignore[arg-type]
+        for row in result
+    ]
+
+
+def get_monthly_plant_loss_ratios_data(
+    from_date: datetime,
+    to_date: datetime,
+    db: Session,
+) -> List[MonthlyPlantLossRatiosModel]:
+    query = text(
+        """
+            WITH plant_generation AS (
+                SELECT
+                    psm.plant_id,
+                    SUM(psm.generated_pwr) AS total_generated,
+                    SUM(psm.received_pwr) AS total_received
+                FROM public.plant_sub_measurements AS psm
+                WHERE psm.time >= :from_date
+                  AND psm.time < :to_date
+                GROUP BY psm.plant_id
+            ),
+            user_consumption AS (
+                SELECT
+                    psc.plant_id,
+                    SUM(sumu.received_pwr) AS total_user_received
+                FROM public.sub_user_measurements AS sumu
+                JOIN public.plant_substation_connection AS psc
+                    ON sumu.substation_id = psc.substation_id
+                WHERE sumu.time >= :from_date
+                  AND sumu.time < :to_date
+                GROUP BY psc.plant_id
+            )
+            SELECT
+                eu.name AS power_plant_source,
+                CASE
+                    WHEN pg.total_generated = 0 THEN 0
+                    ELSE (pg.total_generated - pg.total_received) / pg.total_generated
+                END AS plant_to_substation_loss_ratio,
+                CASE
+                    WHEN pg.total_generated = 0 THEN 0
+                    ELSE (pg.total_generated - COALESCE(uc.total_user_received, 0)) / pg.total_generated
+                END AS total_system_loss_ratio
+            FROM plant_generation AS pg
+            JOIN public.energy_unit AS eu ON eu.id = pg.plant_id
+            LEFT JOIN user_consumption AS uc ON uc.plant_id = pg.plant_id
+            ORDER BY eu.name
+        """
+    )
+
+    result = db.execute(query, {"from_date": from_date, "to_date": to_date})
+
+    return [
+        MonthlyPlantLossRatiosModel(**row._mapping)  # type: ignore[arg-type]
+        for row in result
+    ]
+
+
 # Task E1
 async def insert_measurements_data(
     file: UploadFile,
@@ -336,15 +425,6 @@ async def insert_measurements_data(
         "plant_measurements_inserted": len(plant_payload),
         "user_measurements_inserted": len(user_payload),
     }
-
-
-# Task F1 placeholders
-def get_monthly_company_usage_data():
-    raise NotImplementedError
-
-
-def get_monthly_plant_loss_ratios_data():
-    raise NotImplementedError
 
 
 def get_substations_gridflow_data():
