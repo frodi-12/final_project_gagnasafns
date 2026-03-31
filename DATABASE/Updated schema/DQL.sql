@@ -1,7 +1,9 @@
 -- Task C5
 
 CREATE VIEW public.energy_delivered AS
-SELECT su.pwr_plant_id, EXTRACT(MONTH FROM su.time) AS month, SUM(su.pwr_measurement_kwh) AS delivered_pwr
+SELECT 
+    su.pwr_plant_id, EXTRACT(MONTH FROM su.time) AS month, 
+    SUM(su.pwr_measurement_kwh) AS delivered_pwr
 FROM public.sub_user_measurements su
 GROUP BY su.pwr_plant_id, EXTRACT(MONTH FROM su.time)
 
@@ -17,7 +19,11 @@ JOIN public.energy_unit p ON p.id = psm.plant_id
 GROUP BY psm.plant_id, p.name, EXTRACT(MONTH FROM psm.time)
 
 CREATE VIEW energy_flow AS
-SELECT ppp.name AS power_plant_source, ppp.month, ppp.total_production_kwh, ppp.total_substation_pwr_kwh, ed.delivered_pwr
+SELECT 
+    ppp.name AS power_plant_source, 
+    ppp.month, ppp.total_production_kwh, 
+    ppp.total_substation_pwr_kwh, 
+    ed.delivered_pwr
 FROM public.pwr_plant_production ppp
 JOIN public.energy_unit eu ON eu.name = ppp.name
 JOIN public.energy_delivered ed ON ed.pwr_plant_id = eu.id AND ed.month = ppp.month
