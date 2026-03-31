@@ -15,7 +15,7 @@ JOIN public.energy_unit p ON p.id = psm.plant_id
 GROUP BY psm.plant_id, p.name, EXTRACT(MONTH FROM psm.time)
 
 CREATE VIEW energy_flow AS
-SELECT ppp.name, ppp.month, ppp.total_production_kwh, ppp.total_substation_pwr_kwh, ed.delivered_pwr
+SELECT ppp.name AS power_plant_source, ppp.month, ppp.total_production_kwh, ppp.total_substation_pwr_kwh, ed.delivered_pwr
 FROM public.pwr_plant_production ppp
 JOIN public.energy_unit eu ON eu.name = ppp.name
 JOIN public.energy_delivered ed ON ed.pwr_plant_id = eu.id AND ed.month = ppp.month
@@ -23,11 +23,11 @@ ORDER BY ppp.name, ppp.month
 
 
 --query a3
-SELECT name,
-    (SUM(total_production_kwh)-SUM(total_substation_pwr_kwh))/SUM(total_production_kwh) AS plant_to_sub_loss_ratio,
-    (SUM(total_production_kwh)-SUM(delivered_pwr))/SUM(total_production_kwh) AS total_system_loss_ratio
+SELECT power_plant_source,
+    AVG((total_production_kwh - total_substation_pwr_kwh)/ total_production_kwh) AS plant_to_sub_loss_ratio,
+    AVG((total_production_kwh - delivered_pwr)/total_production_kwh) AS total_system_loss_ratio
 FROM public.energy_flow
-GROUP BY name
+GROUP BY power_plant_source;
 
 --query a2
 SELECT eunit.name, EXTRACT(year FROM sume.time) AS year, EXTRACT(MONTH FROM sume.time) AS month, ui.owner AS customer_name, SUM(sume.pwr_measurement_kwh) AS total_kwh
