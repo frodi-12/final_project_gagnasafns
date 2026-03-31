@@ -3,28 +3,44 @@
 -- Views
 
 CREATE VIEW public.energy_delivered AS
-SELECT su.pwr_plant_id, EXTRACT(MONTH FROM su.time) AS month, SUM(su.pwr_measurement_kwh) AS delivered_pwr
+SELECT
+    psc.plant_id AS pwr_plant_id,
+    EXTRACT(YEAR FROM su.time)::int AS year,
+    EXTRACT(MONTH FROM su.time)::int AS month,
+    SUM(su.pwr_measurement_kwh) AS delivered_pwr
 FROM public.sub_user_measurements su
-GROUP BY su.pwr_plant_id, EXTRACT(MONTH FROM su.time)
+JOIN public.plant_substation_connection psc
+    ON su.substation_id = psc.substation_id
+GROUP BY psc.plant_id, EXTRACT(YEAR FROM su.time)::int, EXTRACT(MONTH FROM su.time)::int;
 
 
 CREATE VIEW public.pwr_plant_production AS
 SELECT 
     p.name,
     psm.plant_id AS plant_id,
-    EXTRACT(MONTH FROM psm.time) AS month,
+    EXTRACT(YEAR FROM psm.time)::int AS year,
+    EXTRACT(MONTH FROM psm.time)::int AS month,
     SUM(psm.pwr_measurement_kwh) FILTER (WHERE psm.type = 'Framleiðsla') AS total_production_kwh,
     SUM(psm.pwr_measurement_kwh) FILTER (WHERE psm.type = 'Innmötun') AS total_substation_pwr_kwh
 FROM public.plant_sub_measurements psm
 JOIN public.energy_unit p ON p.id = psm.plant_id
-GROUP BY psm.plant_id, p.name, EXTRACT(MONTH FROM psm.time)
+GROUP BY psm.plant_id, p.name, EXTRACT(YEAR FROM psm.time)::int, EXTRACT(MONTH FROM psm.time)::int;
 
 CREATE VIEW energy_flow AS
-SELECT ppp.name, ppp.month, ppp.total_production_kwh, ppp.total_substation_pwr_kwh, ed.delivered_pwr
+SELECT
+    ppp.name,
+    ppp.year,
+    ppp.month,
+    ppp.total_production_kwh,
+    ppp.total_substation_pwr_kwh,
+    CASE WHEN ed.delivered_pwr IS NULL THEN 0 ELSE ed.delivered_pwr END AS delivered_pwr
 FROM public.pwr_plant_production ppp
-JOIN public.energy_unit eu ON eu.name = ppp.name
-JOIN public.energy_delivered ed ON ed.pwr_plant_id = eu.id AND ed.month = ppp.month
-ORDER BY ppp.name, ppp.month
+LEFT JOIN public.energy_unit eu ON eu.name = ppp.name
+LEFT JOIN public.energy_delivered ed
+       ON ed.pwr_plant_id = eu.id
+      AND ed.year = ppp.year
+      AND ed.month = ppp.month
+ORDER BY ppp.name, ppp.year, ppp.month;
 
 
 -- Query 1
@@ -32,7 +48,7 @@ ORDER BY ppp.name, ppp.month
 -- Sækjum gögn úr energy_flow (skilgreint sem view í query_A3_new)
 SELECT
     name AS power_plant_source,
-    2025 AS year,
+    year,
     month,
     'Framleiðsla' AS measurement_type,
     CASE WHEN total_production_kwh IS NULL THEN 0 ELSE total_production_kwh END AS total_kwh
@@ -42,7 +58,7 @@ UNION ALL
 
 SELECT
     name AS power_plant_source,
-    2025 AS year,
+    year,
     month,
     'Innmötun' AS measurement_type,
     CASE WHEN total_substation_pwr_kwh IS NULL THEN 0 ELSE total_substation_pwr_kwh END AS total_kwh
@@ -52,7 +68,7 @@ UNION ALL
 
 SELECT
     name AS power_plant_source,
-    2025 AS year,
+    year,
     month,
     'Úttekt' AS measurement_type,
     CASE WHEN delivered_pwr IS NULL THEN 0 ELSE delivered_pwr END AS total_kwh
@@ -65,7 +81,7 @@ ORDER BY power_plant_source, year, month, total_kwh DESC;
 -- Einföld samantekt á úttektum með energy_flow view (sjá query_A3_new)
 SELECT
     name AS power_plant_source,
-    2025 AS year,
+    year,
     month,
     'Úttekt' AS measurement_type,
     CASE

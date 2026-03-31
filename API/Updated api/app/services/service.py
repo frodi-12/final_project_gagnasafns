@@ -23,6 +23,12 @@ from app.models.parsed_data.normalized_measurement_row import (
 from app.parsers.parse_measurements_csv import parse_measurements_csv
 from app.utils.validate_file_type import validate_file_type
 
+"""
+python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+Swagger UI: http://localhost:8000/docs
+"""
+
 # Fasti fyrir viewin okkar
 TASK_C_VIEW_STATEMENTS = [
     """
@@ -32,12 +38,20 @@ TASK_C_VIEW_STATEMENTS = [
         eu.name,
         EXTRACT(YEAR FROM psm.time)::int AS year,
         EXTRACT(MONTH FROM psm.time)::int AS month,
-        SUM(CASE WHEN psm.type ILIKE 'Framlei%' THEN psm.pwr_measurement_kwh ELSE 0 END) AS total_production_kwh,
-        SUM(CASE WHEN psm.type ILIKE 'Innm%' THEN psm.pwr_measurement_kwh ELSE 0 END) AS total_substation_pwr_kwh
+        SUM(
+            CASE WHEN psm."type" ILIKE 'Framlei%' THEN psm.pwr_measurement_kwh ELSE 0 END
+        ) AS total_production_kwh,
+        SUM(
+            CASE WHEN psm."type" ILIKE 'Innm%' THEN psm.pwr_measurement_kwh ELSE 0 END
+        ) AS total_substation_pwr_kwh
     FROM public.plant_sub_measurements AS psm
     JOIN public.pwr_plant AS pp ON psm.plant_id = pp.id
     JOIN public.energy_unit AS eu ON eu.id = pp.id
-    GROUP BY eu.id, eu.name, year, month
+    GROUP BY
+        eu.id,
+        eu.name,
+        EXTRACT(YEAR FROM psm.time)::int,
+        EXTRACT(MONTH FROM psm.time)::int
     """,
     """
     CREATE OR REPLACE VIEW public.energy_delivered AS
@@ -49,7 +63,10 @@ TASK_C_VIEW_STATEMENTS = [
     FROM public.sub_user_measurements AS sumu
     JOIN public.plant_substation_connection AS psc
         ON sumu.substation_id = psc.substation_id
-    GROUP BY psc.plant_id, year, month
+    GROUP BY
+        psc.plant_id,
+        EXTRACT(YEAR FROM sumu.time)::int,
+        EXTRACT(MONTH FROM sumu.time)::int
     """,
     """
     CREATE OR REPLACE VIEW public.energy_flow AS
@@ -82,7 +99,11 @@ TASK_C_VIEW_STATEMENTS = [
     JOIN public.plant_substation_connection AS psc
         ON sumu.substation_id = psc.substation_id
     JOIN public.energy_unit AS plants ON plants.id = psc.plant_id
-    GROUP BY plants.name, ui.name, year, month
+    GROUP BY
+        plants.name,
+        ui.name,
+        EXTRACT(YEAR FROM sumu.time)::int,
+        EXTRACT(MONTH FROM sumu.time)::int
     """,
 ]
 
