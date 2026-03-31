@@ -58,7 +58,7 @@ GROUP BY eunit.name, ui.owner, EXTRACT(MONTH FROM sume.time), EXTRACT(year FROM 
 ORDER BY eunit.name, EXTRACT(MONTH FROM sume.time), ui.owner ASC
 
 -- In the old query we were only working with one table, but in this query we are working with four tables and therefore we need to make three joins to get all the information we need.
--- We start by joining sub_user_measurements with energy_user to get information about who is using the energy, then we join with user_info to get the names of these users and finally we join with energy_unit to get the names of the power plants. 
+-- We join sub_user_measurements with energy_user to get information about who is using the energy, then we join with user_info to get the names of these users and finally we join with energy_unit to get the names of the power plants. 
 -- Then all of this is grouped by power plant, year, month and user name and summed up for each of these groups.
 
 --Query 1
@@ -84,6 +84,6 @@ GROUP BY eu.name, EXTRACT(YEAR FROM sume.time), EXTRACT(MONTH FROM sume.time)
 ORDER BY power_plant_source, year, month, total_kwh DESC
 
 -- In the old query we where only working with one table, but in this query we are working with four tables and therefore we need to make three joins to get all the information we need.
--- We start by joining sub_user_measurements with energy_user to get information about who is using the energy, then we join with user_info to get the names of these users and finally we join with energy_unit to get the names of the power plants. 
+-- We join sub_user_measurements with energy_user to get information about who is using the energy, then we join with user_info to get the names of these users and finally we join with energy_unit to get the names of the power plants. 
 -- Then all of this is grouped by power plant, year, month and user name and summed up for each of these groups.
 
