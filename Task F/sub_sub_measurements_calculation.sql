@@ -1,6 +1,4 @@
 
-
-
 WITH injection AS (
     -- hourly injection into substations from plants
     SELECT
