@@ -107,7 +107,7 @@ CREATE TABLE public.sub_sub_measurements(
     sending_station_ID INTEGER,
     receiving_station_ID INTEGER,
     time TIMESTAMP NOT NULL,
-    sent_pwr FLOAT NOT NULL,
-    received_pwr FLOAT NOT NULL,
+    pwr_measurement_kwh FLOAT NOT NULL,
+    pwr_loss FLOAT NOT NULL,
     FOREIGN KEY (sending_station_ID, receiving_station_ID) REFERENCES public.substation_substation_connection(sending_station_ID, receiving_station_ID)
 );
