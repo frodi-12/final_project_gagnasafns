@@ -38,7 +38,7 @@ DROP VIEW IF EXISTS monthly_plant_energy;
 -- The query creates a monthly summary view per power plant for 2025
 -- and uses it to calculate average loss ratios for each power plant.
 
-CREATE VIEW monthly_plant_energy AS
+CREATE VIEW monthly_summary_view AS
 SELECT
     om.eining_heiti AS power_plant_source,
     EXTRACT(YEAR FROM om.timi) AS year,
@@ -54,6 +54,6 @@ SELECT
     power_plant_source,
     AVG((framleit_pwr - innmotun_pwr) / framleit_pwr) AS plant_to_sub_loss_ratio,
     AVG((framleit_pwr - uttekt_pwr) / framleit_pwr) AS total_system_loss_ratio
-FROM monthly_plant_energy
+FROM monthly_summary_view
 GROUP BY power_plant_source
 ORDER BY power_plant_source;
